@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Logger.h"
+#include "../renderer/VulkanInstance.h"
 
 Application::Application() {
     m_Window = new Window(1280, 720, "VXR Engine");
@@ -7,7 +8,10 @@ Application::Application() {
 }
 
 void Application::Run() {
-    while (!m_Window->ShouldClose()) {
+    VulkanInstance instance(true);  // enable validation layers
+
+    while (!m_Window->ShouldClose())
+    {
         glfwPollEvents();
     }
 }
