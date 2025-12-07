@@ -13,10 +13,9 @@
     "\\out\\build",
     "\\shaders",
     "\\src",
-    "\\src\\core",
     "\\src\\renderer",
     "\\src\\utils"
   ],
-  "SelectedNode": "\\CMakeLists.txt",
+  "SelectedNode": "\\src\\renderer\\VulkanDevice.cpp",
   "PreviewInSolutionExplorer": false
 }
