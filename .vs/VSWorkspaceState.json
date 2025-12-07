@@ -6,7 +6,16 @@
     ]
   },
   "ExpandedNodes": [
-    ""
+    "",
+    "\\build",
+    "\\extern",
+    "\\out",
+    "\\out\\build",
+    "\\shaders",
+    "\\src",
+    "\\src\\core",
+    "\\src\\renderer",
+    "\\src\\utils"
   ],
   "SelectedNode": "\\CMakeLists.txt",
   "PreviewInSolutionExplorer": false
