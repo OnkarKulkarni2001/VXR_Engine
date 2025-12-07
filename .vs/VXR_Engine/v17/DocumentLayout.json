@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "G:\\VXR_Engine\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanDevice.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanDevice.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanDevice.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanDevice.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanInstance.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanInstance.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
@@ -63,19 +71,45 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "VulkanDevice.cpp",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanDevice.cpp",
+              "RelativeDocumentMoniker": "src\\renderer\\VulkanDevice.cpp",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanDevice.cpp",
+              "RelativeToolTip": "src\\renderer\\VulkanDevice.cpp",
+              "ViewState": "AgIAAG8AAAAAAAAAAAAAAHkAAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-12-07T16:44:11.813Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "VulkanDevice.h",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanDevice.h",
+              "RelativeDocumentMoniker": "src\\renderer\\VulkanDevice.h",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanDevice.h",
+              "RelativeToolTip": "src\\renderer\\VulkanDevice.h",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAACMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-12-07T16:43:31.881Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "VulkanInstance.cpp",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanInstance.cpp",
               "RelativeDocumentMoniker": "src\\renderer\\VulkanInstance.cpp",
               "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanInstance.cpp",
               "RelativeToolTip": "src\\renderer\\VulkanInstance.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAIUAAAAAAAAAAAAWwKMAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-12-07T15:24:18.706Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "VulkanInstance.h",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanInstance.h",
               "RelativeDocumentMoniker": "src\\renderer\\VulkanInstance.h",
@@ -88,7 +122,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "Application.cpp",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Application.cpp",
               "RelativeDocumentMoniker": "src\\core\\Application.cpp",
@@ -101,7 +135,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "Logger.h",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Logger.h",
               "RelativeDocumentMoniker": "src\\core\\Logger.h",
@@ -114,7 +148,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "main.cpp",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\main.cpp",
               "RelativeDocumentMoniker": "src\\main.cpp",
@@ -127,7 +161,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "Window.cpp",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Window.cpp",
               "RelativeDocumentMoniker": "src\\core\\Window.cpp",
@@ -140,7 +174,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "Logger.cpp",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Logger.cpp",
               "RelativeDocumentMoniker": "src\\core\\Logger.cpp",
@@ -153,7 +187,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "CMakeLists.txt",
               "DocumentMoniker": "G:\\VXR_Engine\\CMakeLists.txt",
               "RelativeDocumentMoniker": "CMakeLists.txt",
@@ -166,7 +200,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "Window.h",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Window.h",
               "RelativeDocumentMoniker": "src\\core\\Window.h",
@@ -179,7 +213,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "Application.h",
               "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Application.h",
               "RelativeDocumentMoniker": "src\\core\\Application.h",
