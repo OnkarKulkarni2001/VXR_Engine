@@ -10,7 +10,7 @@ class VulkanRenderPass;
 class VulkanFramebuffers;
 class VulkanCommandPool;
 class VulkanCommandBuffers;
-
+class VulkanSync;
 
 class Application {
 public:
@@ -18,6 +18,8 @@ public:
     ~Application();
 
     void Run();
+
+    void DrawFrame();
 
 private:
     Window* m_Window = nullptr;
@@ -31,4 +33,6 @@ private:
     VulkanFramebuffers* m_Framebuffers = nullptr;
     VulkanCommandPool* m_CommandPool = nullptr;
     VulkanCommandBuffers* m_CommandBuffers = nullptr;
+    VulkanSync* m_Sync = nullptr;
+    VkSurfaceKHR          m_Surface = VK_NULL_HANDLE;
 };
