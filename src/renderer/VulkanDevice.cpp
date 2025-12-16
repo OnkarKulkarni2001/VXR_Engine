@@ -7,6 +7,7 @@
 VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
 {
     PickPhysicalDevice(instance, surface);
+    DetermineMSAASamples();       // NEW: decide what MSAA we can use
     CreateLogicalDevice(surface);
 }
 
@@ -122,10 +123,17 @@ void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
         queueInfos.push_back(qInfo);
     }
 
+    const std::vector<const char*> deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = queueInfos.size();
     createInfo.pQueueCreateInfos = queueInfos.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
 
     if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
     {
@@ -137,4 +145,84 @@ void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
     vkGetDeviceQueue(m_Device, m_PresentFamilyIndex, 0, &m_PresentQueue);
 
     LOG_INFO("Logical device created successfully!");
+}
+
+void VulkanDevice::DetermineMSAASamples()
+{
+    m_MSAASamples = GetMaxUsableSampleCount();
+
+    LOG_INFO("Using MSAA sample count: " + std::to_string(static_cast<int>(m_MSAASamples)));
+}
+
+VkSampleCountFlagBits VulkanDevice::GetMaxUsableSampleCount()
+{
+    VkPhysicalDeviceProperties props{};
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
+
+    VkSampleCountFlags colorCounts = props.limits.framebufferColorSampleCounts;
+    VkSampleCountFlags depthCounts = props.limits.framebufferDepthSampleCounts;
+
+    VkSampleCountFlags counts = colorCounts & depthCounts;
+
+    if (counts & VK_SAMPLE_COUNT_8_BIT)  return VK_SAMPLE_COUNT_8_BIT;
+    if (counts & VK_SAMPLE_COUNT_4_BIT)  return VK_SAMPLE_COUNT_4_BIT;
+    if (counts & VK_SAMPLE_COUNT_2_BIT)  return VK_SAMPLE_COUNT_2_BIT;
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+VkFormat VulkanDevice::FindSupportedFormat(const std::vector<VkFormat>& candidates,
+    VkImageTiling tiling,
+    VkFormatFeatureFlags features) const
+{
+    for (VkFormat format : candidates)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR &&
+            (props.linearTilingFeatures & features) == features)
+        {
+            return format;
+        }
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+            (props.optimalTilingFeatures & features) == features)
+        {
+            return format;
+        }
+    }
+
+    LOG_ERROR("Failed to find supported format!");
+    return VK_FORMAT_UNDEFINED;
+}
+
+VkFormat VulkanDevice::FindDepthFormat() const
+{
+    return FindSupportedFormat(
+        {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        },
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+}
+
+uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+{
+    VkPhysicalDeviceMemoryProperties memProps;
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProps);
+
+    for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) &&
+            (memProps.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    LOG_ERROR("Failed to find suitable memory type!");
+    return 0;
 }

@@ -18,7 +18,7 @@ include_directories(extern/glfw/include)
 find_package(Vulkan REQUIRED)
 
 # Build engine executable
-add_executable(VXR_Engine ${ENGINE_SOURCES} "src/renderer/VulkanInstance.h" "src/renderer/VulkanInstance.cpp" "src/renderer/VulkanDevice.h" "src/renderer/VulkanDevice.cpp")
+add_executable(VXR_Engine ${ENGINE_SOURCES} "src/renderer/VulkanInstance.h" "src/renderer/VulkanInstance.cpp" "src/renderer/VulkanDevice.h" "src/renderer/VulkanDevice.cpp" "src/renderer/VulkanSwapchain.h" "src/renderer/VulkanRenderPass.h" "src/renderer/VulkanRenderPass.cpp" "src/renderer/VulkanFramebuffers.h" "src/renderer/VulkanFramebuffers.cpp" "src/renderer/VulkanDepthBuffer.h" "src/renderer/VulkanDepthBuffer.cpp" "src/renderer/VulkanMSAAColorBuffer.h" "src/renderer/VulkanMSAAColorBuffer.cpp" "src/renderer/VulkanCommandPool.h" "src/renderer/VulkanCommandPool.cpp" "src/renderer/VulkanCommandBuffers.h" "src/renderer/VulkanCommandBuffers.cpp")
 
 # Link engine with libraries
 target_link_libraries(VXR_Engine
