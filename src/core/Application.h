@@ -11,6 +11,9 @@ class VulkanFramebuffers;
 class VulkanCommandPool;
 class VulkanCommandBuffers;
 class VulkanSync;
+class VulkanPipeline;
+class VulkanVertexBuffer;
+
 
 class Application {
 public:
@@ -35,4 +38,7 @@ private:
     VulkanCommandBuffers* m_CommandBuffers = nullptr;
     VulkanSync* m_Sync = nullptr;
     VkSurfaceKHR          m_Surface = VK_NULL_HANDLE;
+    VulkanPipeline* m_Pipeline = nullptr;
+    VulkanVertexBuffer* m_VertexBuffer = nullptr;
+
 };
