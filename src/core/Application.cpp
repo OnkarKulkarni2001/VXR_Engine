@@ -1,16 +1,22 @@
 #include "Application.h"
 #include "Logger.h"
 
-#include "../renderer/VulkanInstance.h"
-#include "../renderer/VulkanDevice.h"
-#include "../renderer/VulkanSwapchain.h"
-#include "../renderer/VulkanDepthBuffer.h"
-#include "../renderer/VulkanMSAAColorBuffer.h"
-#include "../renderer/VulkanRenderPass.h"
-#include "../renderer/VulkanFramebuffers.h"
-#include "../renderer/VulkanCommandPool.h"
-#include "../renderer/VulkanCommandBuffers.h"
-#include "../renderer/VulkanSync.h"
+#include "renderer/VulkanInstance.h"
+#include "renderer/VulkanDevice.h"
+#include "renderer/VulkanSwapchain.h"
+#include "renderer/VulkanDepthBuffer.h"
+#include "renderer/VulkanMSAAColorBuffer.h"
+#include "renderer/VulkanRenderPass.h"
+#include "renderer/VulkanFramebuffers.h"
+#include "renderer/VulkanCommandPool.h"
+#include "renderer/VulkanCommandBuffers.h"
+#include "renderer/VulkanSync.h"
+#include "renderer/pipeline/VulkanPipeline.h"
+#include "renderer/VulkanVertexBuffer.h"
+#include "renderer/Vertex.h"
+#include "renderer/TriangleData.h"
+
+#include <array>
 
 Application::Application()
 {
@@ -20,70 +26,89 @@ Application::Application()
 
 Application::~Application()
 {
-    // Destroy in reverse order of creation (important in Vulkan)
+    // If device exists, ensure GPU is idle before destroying GPU resources
+    if (m_Device)
+        vkDeviceWaitIdle(m_Device->GetHandle());
+
+    // Destroy in reverse order of creation
     delete m_Sync;
     delete m_CommandBuffers;
     delete m_CommandPool;
 
+    delete m_Pipeline;
     delete m_Framebuffers;
     delete m_RenderPass;
     delete m_MSAAColor;
     delete m_DepthBuffer;
     delete m_Swapchain;
 
+    delete m_VertexBuffer;
+
     delete m_Device;
+
+    // IMPORTANT: Destroy surface BEFORE instance
+    if (m_Instance && m_Surface != VK_NULL_HANDLE)
+    {
+        vkDestroySurfaceKHR(m_Instance->GetHandle(), m_Surface, nullptr);
+        m_Surface = VK_NULL_HANDLE;
+    }
+
     delete m_Instance;
     delete m_Window;
+
+    m_Sync = nullptr;
+    m_CommandBuffers = nullptr;
+    m_CommandPool = nullptr;
+    m_Pipeline = nullptr;
+    m_Framebuffers = nullptr;
+    m_RenderPass = nullptr;
+    m_MSAAColor = nullptr;
+    m_DepthBuffer = nullptr;
+    m_Swapchain = nullptr;
+    m_VertexBuffer = nullptr;
+    m_Device = nullptr;
+    m_Instance = nullptr;
+    m_Window = nullptr;
 }
 
 void Application::Run()
 {
-    // 1) Create Vulkan instance
+    // 1) Instance
     m_Instance = new VulkanInstance(true);
 
-    // 2) Create surface + device
-    VkSurfaceKHR surface = m_Window->CreateSurface(m_Instance->GetHandle());
+    // 2) Surface + Device
+    // Store surface in a member so we can destroy it later correctly.
+    m_Surface = m_Window->CreateSurface(m_Instance->GetHandle());
 
     m_Device = new VulkanDevice(
         m_Instance->GetHandle(),
-        surface
+        m_Surface
     );
 
-    // 3) Create swapchain (use the same surface we just created)
+    // 3) Swapchain
     m_Swapchain = new VulkanSwapchain(
         m_Instance->GetHandle(),
         m_Device,
-        surface,
+        m_Surface,
         m_Window->GetWidth(),
         m_Window->GetHeight()
     );
 
-    // EXTENT + FORMAT come from swapchain
+    // Swapchain-derived formats
     VkExtent2D extent = m_Swapchain->GetExtent();
-    VkFormat   colorFormat = m_Swapchain->GetImageFormat();
-    VkFormat   depthFormat = m_Device->FindDepthFormat();
+    VkFormat   colorFmt = m_Swapchain->GetImageFormat();
+    VkFormat   depthFmt = m_Device->FindDepthFormat();
 
-    // 4) Depth buffer (MSAA)
-    m_DepthBuffer = new VulkanDepthBuffer(
-        m_Device,
-        extent
-    );
+    // 4) Depth (MSAA aware)
+    m_DepthBuffer = new VulkanDepthBuffer(m_Device, extent);
 
-    // 5) MSAA color buffer
-    m_MSAAColor = new VulkanMSAAColorBuffer(
-        m_Device,
-        colorFormat,
-        extent
-    );
+    // 5) MSAA Color
+    m_MSAAColor = new VulkanMSAAColorBuffer(m_Device, colorFmt, extent);
 
-    // 6) Render pass using color + depth + resolve
-    m_RenderPass = new VulkanRenderPass(
-        m_Device,
-        colorFormat,
-        depthFormat
-    );
+    // 6) RenderPass
+    m_RenderPass = new VulkanRenderPass(m_Device, colorFmt, depthFmt);
 
-    // 7) Framebuffers (one per swapchain image)
+    // 7) Framebuffers
     m_Framebuffers = new VulkanFramebuffers(
         m_Device,
         m_Swapchain,
@@ -92,7 +117,27 @@ void Application::Run()
         m_MSAAColor
     );
 
-    // 8) Command Pool & Command Buffers
+    // 8) Pipeline (triangle shaders)
+    m_Pipeline = new VulkanPipeline(
+        m_Device,
+        m_Swapchain,
+        m_RenderPass,
+        "shaders/triangle.vert.spv",
+        "shaders/triangle.frag.spv"
+    );
+
+    // 9) Vertex buffer (create after device is ready; swapchain order doesn’t matter,
+    // but this is a cleaner lifetime grouping.)
+    const VkDeviceSize vbSize =
+        static_cast<VkDeviceSize>(TRIANGLE_VERTICES.size() * sizeof(TRIANGLE_VERTICES[0]));
+
+    m_VertexBuffer = new VulkanVertexBuffer(
+        m_Device,
+        TRIANGLE_VERTICES.data(),
+        vbSize
+    );
+
+    // 10) Command Pool + Command Buffers
     m_CommandPool = new VulkanCommandPool(m_Device);
 
     m_CommandBuffers = new VulkanCommandBuffers(
@@ -103,18 +148,14 @@ void Application::Run()
         m_Framebuffers
     );
 
-    // 9) Sync
-    // IMPORTANT: VulkanSync should internally create:
-    // - imageAvailable semaphores per FRAME (maxFramesInFlight)
-    // - renderFinished semaphores per SWAPCHAIN IMAGE
-    // - fences per FRAME
+    // 11) Sync
     m_Sync = new VulkanSync(
         m_Device,
-        2, // max frames in flight (standard engine value)
+        2, // maxFramesInFlight
         static_cast<uint32_t>(m_Swapchain->GetImageViews().size())
     );
 
-    // --- MAIN LOOP ---
+    // Main loop
     while (!m_Window->ShouldClose())
     {
         glfwPollEvents();
@@ -126,7 +167,7 @@ void Application::Run()
 
 void Application::DrawFrame()
 {
-    // 1) Wait for this frame slot to be available (CPU-GPU pacing)
+    // 1) CPU-GPU pacing: wait for this frame slot
     VkFence& inFlightFence = m_Sync->GetInFlightFence();
 
     vkWaitForFences(
@@ -139,9 +180,8 @@ void Application::DrawFrame()
 
     vkResetFences(m_Device->GetHandle(), 1, &inFlightFence);
 
-    // 2) Acquire a swapchain image
+    // 2) Acquire swapchain image
     uint32_t imageIndex = 0;
-
     VkSemaphore& imageAvailable = m_Sync->GetImageAvailableSemaphore(); // per-frame
 
     VkResult acquireResult = vkAcquireNextImageKHR(
@@ -155,7 +195,6 @@ void Application::DrawFrame()
 
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        // Resize handling later; for now just skip the frame safely
         LOG_WARN("Swapchain out of date (resize). Skipping frame.");
         return;
     }
@@ -165,25 +204,72 @@ void Application::DrawFrame()
         return;
     }
 
-    // 3) Submit command buffer
+    // 3) Record this image's command buffer
+    VkCommandBuffer cmd = m_CommandBuffers->GetBuffers()[imageIndex];
+
+    vkResetCommandBuffer(cmd, 0);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+    if (vkBeginCommandBuffer(cmd, &beginInfo) != VK_SUCCESS)
+    {
+        LOG_ERROR("Failed to begin command buffer!");
+        return;
+    }
+
+    // Render pass begin
+    VkExtent2D extent = m_Swapchain->GetExtent();
+
+    std::array<VkClearValue, 2> clears{};
+    clears[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
+    clears[1].depthStencil = { 1.0f, 0 };
+
+    VkRenderPassBeginInfo rpBegin{};
+    rpBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    rpBegin.renderPass = m_RenderPass->GetHandle();
+    rpBegin.framebuffer = m_Framebuffers->GetFramebuffers()[imageIndex];
+    rpBegin.renderArea.offset = { 0, 0 };
+    rpBegin.renderArea.extent = extent;
+    rpBegin.clearValueCount = static_cast<uint32_t>(clears.size());
+    rpBegin.pClearValues = clears.data();
+
+    vkCmdBeginRenderPass(cmd, &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+    // Bind pipeline
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
+
+    // Bind vertex buffer
+    VkBuffer vertexBuffers[] = { m_VertexBuffer->GetBuffer() };
+    VkDeviceSize offsets[] = { 0 };
+
+    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+
+    // Draw 3 vertices
+    vkCmdDraw(cmd, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(cmd);
+
+    if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
+    {
+        LOG_ERROR("Failed to record command buffer!");
+        return;
+    }
+
+    // 4) Submit
     VkSemaphore waitSemaphores[] = { imageAvailable };
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
     VkSemaphore& renderFinished = m_Sync->GetRenderFinishedSemaphore(imageIndex); // per-image
     VkSemaphore signalSemaphores[] = { renderFinished };
 
-    VkCommandBuffer cmd = m_CommandBuffers->GetBuffers()[imageIndex];
-
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
-
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
-
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -191,17 +277,16 @@ void Application::DrawFrame()
         m_Device->GetGraphicsQueue(),
         1,
         &submitInfo,
-        inFlightFence // fence handle (reference is fine)
+        inFlightFence
     ) != VK_SUCCESS)
     {
         LOG_ERROR("Failed to submit draw command buffer!");
         return;
     }
 
-    // 4) Present
+    // 5) Present
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
@@ -214,7 +299,6 @@ void Application::DrawFrame()
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
     {
-        // Resize handling later; for now just skip safely
         LOG_WARN("Swapchain out of date/suboptimal on present. Skipping.");
     }
     else if (presentResult != VK_SUCCESS)
@@ -222,6 +306,6 @@ void Application::DrawFrame()
         LOG_ERROR("Failed to present swapchain image!");
     }
 
-    // 5) Advance frame slot (only affects per-frame semaphores/fences)
+    // 6) Advance frame slot
     m_Sync->AdvanceFrame();
 }

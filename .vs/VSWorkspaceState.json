@@ -8,14 +8,14 @@
   "ExpandedNodes": [
     "",
     "\\build",
-    "\\extern",
     "\\out",
     "\\out\\build",
     "\\shaders",
     "\\src",
+    "\\src\\core",
     "\\src\\renderer",
-    "\\src\\utils"
+    "\\src\\renderer\\pipeline",
+    "\\src\\renderer\\shaders"
   ],
-  "SelectedNode": "\\src\\main.cpp",
   "PreviewInSolutionExplorer": false
 }

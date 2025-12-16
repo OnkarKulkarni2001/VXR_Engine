@@ -7,20 +7,48 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\core\\Application.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanSync.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanSync.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\core\\Application.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\core\\Application.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanSync.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanSync.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\pipeline\\VulkanPipeline.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\pipeline\\VulkanPipeline.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\TriangleData.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\TriangleData.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\Vertex.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\Vertex.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\shaders\\triangle.frag||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\shaders\\triangle.frag||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\shaders\\triangle.vert||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\shaders\\triangle.vert||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanRenderPass.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanRenderPass.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanVertexBuffer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanVertexBuffer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\VulkanVertexBuffer.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\VulkanVertexBuffer.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|G:\\VXR_Engine\\src\\renderer\\pipeline\\VulkanPipeline.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\renderer\\pipeline\\VulkanPipeline.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -30,7 +58,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -43,14 +71,28 @@
             {
               "$type": "Document",
               "DocumentIndex": 4,
-              "Title": "CMakeLists.txt",
-              "DocumentMoniker": "G:\\VXR_Engine\\CMakeLists.txt",
-              "RelativeDocumentMoniker": "CMakeLists.txt",
-              "ToolTip": "G:\\VXR_Engine\\CMakeLists.txt",
-              "RelativeToolTip": "CMakeLists.txt",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAMAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2025-12-16T18:19:47.516Z"
+              "Title": "Vertex.h",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\Vertex.h",
+              "RelativeDocumentMoniker": "src\\renderer\\Vertex.h",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\Vertex.h",
+              "RelativeToolTip": "src\\renderer\\Vertex.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-12-16T21:21:26.014Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Application.h",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Application.h",
+              "RelativeDocumentMoniker": "src\\core\\Application.h",
+              "ToolTip": "G:\\VXR_Engine\\src\\core\\Application.h",
+              "RelativeToolTip": "src\\core\\Application.h",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAACcAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-12-16T20:13:48.764Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -60,48 +102,126 @@
               "RelativeDocumentMoniker": "src\\core\\Application.cpp",
               "ToolTip": "G:\\VXR_Engine\\src\\core\\Application.cpp",
               "RelativeToolTip": "src\\core\\Application.cpp",
-              "ViewState": "AgIAAFgAAAAAAAAAAADwv3MAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABIAAAAAAAAAAAAAAC8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-12-16T18:21:29.482Z",
+              "WhenOpened": "2025-12-16T20:12:40.859Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "triangle.vert",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\shaders\\triangle.vert",
+              "RelativeDocumentMoniker": "src\\renderer\\shaders\\triangle.vert",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\shaders\\triangle.vert",
+              "RelativeToolTip": "src\\renderer\\shaders\\triangle.vert",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-16T19:58:31.974Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "triangle.frag",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\shaders\\triangle.frag",
+              "RelativeDocumentMoniker": "src\\renderer\\shaders\\triangle.frag",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\shaders\\triangle.frag",
+              "RelativeToolTip": "src\\renderer\\shaders\\triangle.frag",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-12-16T19:58:42.549Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "Application.h",
-              "DocumentMoniker": "G:\\VXR_Engine\\src\\core\\Application.h",
-              "RelativeDocumentMoniker": "src\\core\\Application.h",
-              "ToolTip": "G:\\VXR_Engine\\src\\core\\Application.h",
-              "RelativeToolTip": "src\\core\\Application.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-12-16T18:20:34.257Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "VulkanSync.cpp",
-              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanSync.cpp",
-              "RelativeDocumentMoniker": "src\\renderer\\VulkanSync.cpp",
-              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanSync.cpp",
-              "RelativeToolTip": "src\\renderer\\VulkanSync.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAA==",
+              "Title": "VulkanPipeline.cpp",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\pipeline\\VulkanPipeline.cpp",
+              "RelativeDocumentMoniker": "src\\renderer\\pipeline\\VulkanPipeline.cpp",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\pipeline\\VulkanPipeline.cpp",
+              "RelativeToolTip": "src\\renderer\\pipeline\\VulkanPipeline.cpp",
+              "ViewState": "AgIAAIIAAAAAAAAAAADwv5QAAAAzAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-12-16T18:20:07.49Z",
+              "WhenOpened": "2025-12-16T19:58:00.624Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "VulkanSync.h",
-              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanSync.h",
-              "RelativeDocumentMoniker": "src\\renderer\\VulkanSync.h",
-              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanSync.h",
-              "RelativeToolTip": "src\\renderer\\VulkanSync.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACQAAAAAAAAAAAAAAA==",
+              "Title": "TriangleData.h",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\TriangleData.h",
+              "RelativeDocumentMoniker": "src\\renderer\\TriangleData.h",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\TriangleData.h",
+              "RelativeToolTip": "src\\renderer\\TriangleData.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-12-16T18:19:46.435Z",
+              "WhenOpened": "2025-12-16T21:21:59.587Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "VulkanVertexBuffer.h",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanVertexBuffer.h",
+              "RelativeDocumentMoniker": "src\\renderer\\VulkanVertexBuffer.h",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanVertexBuffer.h",
+              "RelativeToolTip": "src\\renderer\\VulkanVertexBuffer.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-12-16T21:04:18.496Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "VulkanVertexBuffer.cpp",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanVertexBuffer.cpp",
+              "RelativeDocumentMoniker": "src\\renderer\\VulkanVertexBuffer.cpp",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanVertexBuffer.cpp",
+              "RelativeToolTip": "src\\renderer\\VulkanVertexBuffer.cpp",
+              "ViewState": "AgIAABcAAAAAAAAAAAAswEMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-12-16T21:04:29.151Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "VulkanRenderPass.cpp",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\VulkanRenderPass.cpp",
+              "RelativeDocumentMoniker": "src\\renderer\\VulkanRenderPass.cpp",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\VulkanRenderPass.cpp",
+              "RelativeToolTip": "src\\renderer\\VulkanRenderPass.cpp",
+              "ViewState": "AgIAADwAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-12-16T21:12:23.084Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "CMakeLists.txt",
+              "DocumentMoniker": "G:\\VXR_Engine\\CMakeLists.txt",
+              "RelativeDocumentMoniker": "CMakeLists.txt",
+              "ToolTip": "G:\\VXR_Engine\\CMakeLists.txt",
+              "RelativeToolTip": "CMakeLists.txt",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAiwCoAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2025-12-16T18:19:47.516Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "VulkanPipeline.h",
+              "DocumentMoniker": "G:\\VXR_Engine\\src\\renderer\\pipeline\\VulkanPipeline.h",
+              "RelativeDocumentMoniker": "src\\renderer\\pipeline\\VulkanPipeline.h",
+              "ToolTip": "G:\\VXR_Engine\\src\\renderer\\pipeline\\VulkanPipeline.h",
+              "RelativeToolTip": "src\\renderer\\pipeline\\VulkanPipeline.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-12-16T19:57:27.847Z",
               "EditorCaption": ""
             }
           ]
