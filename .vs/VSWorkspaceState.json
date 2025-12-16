@@ -16,6 +16,6 @@
     "\\src\\renderer",
     "\\src\\utils"
   ],
-  "SelectedNode": "\\src\\renderer\\VulkanDevice.cpp",
+  "SelectedNode": "\\src\\main.cpp",
   "PreviewInSolutionExplorer": false
 }
