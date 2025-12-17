@@ -18,6 +18,7 @@
 #include "renderer/UniformBufferObject.h"
 #include "renderer/VulkanUniformBuffers.h"
 #include "renderer/VulkanDescriptors.h"
+#include "renderer/CameraUBO.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -98,7 +99,7 @@ void Application::Run()
     m_UniformBuffers = new VulkanUniformBuffers(
         m_Device,
         FRAMES_IN_FLIGHT,
-        sizeof(UniformBufferObject)
+        sizeof(CameraUBO)
     );
 
     m_Descriptors = new VulkanDescriptors(
@@ -229,23 +230,30 @@ void Application::DrawFrame()
     }
 
 	// Update uniform buffers
-    uint32_t frameIndex = m_Sync->GetCurrentFrame();
+    uint32_t frame = m_Sync->GetCurrentFrame();
 
-    // Build MVP (example)
-    UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f),
-        (float)glfwGetTime(),
-        glm::vec3(0.0f, 0.0f, 1.0f));
-
-    ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f),
+    CameraUBO ubo{};
+    ubo.view = glm::lookAt(
+        glm::vec3(0.0f, 0.0f, 2.0f),
         glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
 
-    float aspect = (float)m_Swapchain->GetExtent().width / (float)m_Swapchain->GetExtent().height;
-    ubo.proj = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.0f);
-    ubo.proj[1][1] *= -1; // Vulkan clip space
+    float aspect =
+        (float)m_Swapchain->GetExtent().width /
+        (float)m_Swapchain->GetExtent().height;
 
-    m_UniformBuffers->Update(frameIndex, &ubo, sizeof(ubo));
+    ubo.proj = glm::perspective(
+        glm::radians(60.0f),
+        aspect,
+        0.1f,
+        100.0f
+    );
+
+    // Vulkan clip-space correction
+    ubo.proj[1][1] *= -1;
+
+    m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
 
 
     // 3) Record this image's command buffer
@@ -284,7 +292,7 @@ void Application::DrawFrame()
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
 
 	// Bind descriptor set (per-frame)
-    VkDescriptorSet set = m_Descriptors->GetSet(frameIndex);
+    VkDescriptorSet set = m_Descriptors->GetSet(frame);
 
     vkCmdBindDescriptorSets(
         cmd,

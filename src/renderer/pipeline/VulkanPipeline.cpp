@@ -98,7 +98,7 @@ VulkanPipeline::VulkanPipeline(
     attributes[0].binding = 0;
     attributes[0].location = 0;
     attributes[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributes[0].offset = offsetof(Vertex, position);
+    attributes[0].offset = offsetof(Vertex, pos);
 
     // location = 1 : vec3 color
     attributes[1].binding = 0;
@@ -147,7 +147,7 @@ VulkanPipeline::VulkanPipeline(
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthBiasEnable = VK_FALSE;
 
