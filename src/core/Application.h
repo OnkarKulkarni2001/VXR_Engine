@@ -13,6 +13,8 @@ class VulkanCommandBuffers;
 class VulkanSync;
 class VulkanPipeline;
 class VulkanVertexBuffer;
+class VulkanUniformBuffers;
+class VulkanDescriptors;
 
 
 class Application {
@@ -42,5 +44,4 @@ private:
     VulkanVertexBuffer* m_VertexBuffer = nullptr;
     VulkanUniformBuffers* m_UniformBuffers = nullptr;
     VulkanDescriptors* m_Descriptors = nullptr;
-
 };
