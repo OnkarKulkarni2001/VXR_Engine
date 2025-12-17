@@ -15,7 +15,11 @@
 #include "renderer/VulkanVertexBuffer.h"
 #include "renderer/Vertex.h"
 #include "renderer/TriangleData.h"
+#include "renderer/UniformBufferObject.h"
+#include "renderer/VulkanUniformBuffers.h"
+#include "renderer/VulkanDescriptors.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <array>
 
 Application::Application()
@@ -34,6 +38,9 @@ Application::~Application()
     delete m_Sync;
     delete m_CommandBuffers;
     delete m_CommandPool;
+
+    delete m_Descriptors;
+    delete m_UniformBuffers;
 
     delete m_Pipeline;
     delete m_Framebuffers;
@@ -85,6 +92,22 @@ void Application::Run()
         m_Surface
     );
 
+	// Uniform buffers + descriptors
+    const uint32_t FRAMES_IN_FLIGHT = 2;
+
+    m_UniformBuffers = new VulkanUniformBuffers(
+        m_Device,
+        FRAMES_IN_FLIGHT,
+        sizeof(UniformBufferObject)
+    );
+
+    m_Descriptors = new VulkanDescriptors(
+        m_Device,
+        m_UniformBuffers,
+        FRAMES_IN_FLIGHT
+    );
+
+
     // 3) Swapchain
     m_Swapchain = new VulkanSwapchain(
         m_Instance->GetHandle(),
@@ -122,6 +145,7 @@ void Application::Run()
         m_Device,
         m_Swapchain,
         m_RenderPass,
+		m_Descriptors->GetLayout(),
         "shaders/triangle.vert.spv",
         "shaders/triangle.frag.spv"
     );
@@ -204,6 +228,26 @@ void Application::DrawFrame()
         return;
     }
 
+	// Update uniform buffers
+    uint32_t frameIndex = m_Sync->GetCurrentFrame();
+
+    // Build MVP (example)
+    UniformBufferObject ubo{};
+    ubo.model = glm::rotate(glm::mat4(1.0f),
+        (float)glfwGetTime(),
+        glm::vec3(0.0f, 0.0f, 1.0f));
+
+    ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f));
+
+    float aspect = (float)m_Swapchain->GetExtent().width / (float)m_Swapchain->GetExtent().height;
+    ubo.proj = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.0f);
+    ubo.proj[1][1] *= -1; // Vulkan clip space
+
+    m_UniformBuffers->Update(frameIndex, &ubo, sizeof(ubo));
+
+
     // 3) Record this image's command buffer
     VkCommandBuffer cmd = m_CommandBuffers->GetBuffers()[imageIndex];
 
@@ -238,6 +282,19 @@ void Application::DrawFrame()
 
     // Bind pipeline
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
+
+	// Bind descriptor set (per-frame)
+    VkDescriptorSet set = m_Descriptors->GetSet(frameIndex);
+
+    vkCmdBindDescriptorSets(
+        cmd,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_Pipeline->GetLayout(),
+        0, 1,
+        &set,
+        0, nullptr
+    );
+
 
     // Bind vertex buffer
     VkBuffer vertexBuffers[] = { m_VertexBuffer->GetBuffer() };

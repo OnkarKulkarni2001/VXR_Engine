@@ -12,8 +12,10 @@ public:
     VulkanPipeline(VulkanDevice* device,
         VulkanSwapchain* swapchain,
         VulkanRenderPass* renderPass,
+        VkDescriptorSetLayout descriptorSetLayout,
         const std::string& vertSpvPath,
         const std::string& fragSpvPath);
+
 
     ~VulkanPipeline();
 
