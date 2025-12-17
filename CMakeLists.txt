@@ -31,7 +31,7 @@ find_package(glm CONFIG REQUIRED)
 # --------------------------------
 # Engine executable
 # --------------------------------
-add_executable(VXR_Engine ${ENGINE_SOURCES}  "src/renderer/VulkanVertexBuffer.h" "src/renderer/VulkanVertexBuffer.cpp"  "src/renderer/Vertex.h" "src/renderer/TriangleData.h")
+add_executable(VXR_Engine ${ENGINE_SOURCES}  "src/renderer/VulkanVertexBuffer.h" "src/renderer/VulkanVertexBuffer.cpp"  "src/renderer/Vertex.h" "src/renderer/TriangleData.h" "src/renderer/UniformBufferObject.h" "src/renderer/VulkanUniformBuffers.h" "src/renderer/VulkanUniformBuffers.cpp" "src/renderer/VulkanDescriptors.h" "src/renderer/VulkanDescriptors.cpp")
 
 # --------------------------------
 # Link libraries

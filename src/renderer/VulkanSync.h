@@ -16,10 +16,13 @@ public:
     VkSemaphore& GetImageAvailableSemaphore();
     VkFence& GetInFlightFence();
 
+    uint32_t GetCurrentFrame() const { return m_CurrentFrame; }
+
     // Per-swapchain-image
     VkSemaphore& GetRenderFinishedSemaphore(uint32_t imageIndex);
 
     void AdvanceFrame();
+
 
 private:
     VulkanDevice* m_Device = nullptr;

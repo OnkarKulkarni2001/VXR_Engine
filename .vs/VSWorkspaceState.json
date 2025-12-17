@@ -7,7 +7,6 @@
   },
   "ExpandedNodes": [
     "",
-    "\\build",
     "\\out",
     "\\out\\build",
     "\\shaders",
@@ -17,5 +16,6 @@
     "\\src\\renderer\\pipeline",
     "\\src\\renderer\\shaders"
   ],
+  "SelectedNode": "\\CMakeLists.txt",
   "PreviewInSolutionExplorer": false
 }

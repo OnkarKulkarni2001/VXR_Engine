@@ -40,5 +40,7 @@ private:
     VkSurfaceKHR          m_Surface = VK_NULL_HANDLE;
     VulkanPipeline* m_Pipeline = nullptr;
     VulkanVertexBuffer* m_VertexBuffer = nullptr;
+    VulkanUniformBuffers* m_UniformBuffers = nullptr;
+    VulkanDescriptors* m_Descriptors = nullptr;
 
 };
