@@ -1,6 +1,8 @@
 #include "VulkanDevice.h"
 #include "../core/Logger.h"
 
+#include <stdexcept>
+#include <cstring>
 #include <set>
 #include <iostream>
 
@@ -14,7 +16,16 @@ VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
 VulkanDevice::~VulkanDevice()
 {
     if (m_Device)
+    {
+        if (m_TransferCommandPool)
+        {
+            vkDestroyCommandPool(m_Device, m_TransferCommandPool, nullptr);
+            m_TransferCommandPool = VK_NULL_HANDLE;
+        }
+
         vkDestroyDevice(m_Device, nullptr);
+        m_Device = VK_NULL_HANDLE;
+    }
 }
 
 void VulkanDevice::PickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
@@ -145,6 +156,20 @@ void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
     vkGetDeviceQueue(m_Device, m_PresentFamilyIndex, 0, &m_PresentQueue);
 
     LOG_INFO("Logical device created successfully!");
+
+    // Create transfer / one-time command pool
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = m_GraphicsFamilyIndex;
+    poolInfo.flags =
+        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
+        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_TransferCommandPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create transfer command pool!");
+    }
+
 }
 
 void VulkanDevice::DetermineMSAASamples()
@@ -209,20 +234,102 @@ VkFormat VulkanDevice::FindDepthFormat() const
     );
 }
 
-uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+void VulkanDevice::CreateBuffer(
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer& buffer,
+    VkDeviceMemory& bufferMemory)
 {
-    VkPhysicalDeviceMemoryProperties memProps;
-    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProps);
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = size;
+    bufferInfo.usage = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    for (uint32_t i = 0; i < memProps.memoryTypeCount; i++)
+    if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
     {
-        if ((typeFilter & (1 << i)) &&
-            (memProps.memoryTypes[i].propertyFlags & properties) == properties)
-        {
-            return i;
-        }
+        throw std::runtime_error("Failed to create buffer!");
     }
 
-    LOG_ERROR("Failed to find suitable memory type!");
-    return 0;
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_Device, buffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex =
+        FindMemoryType(memRequirements.memoryTypeBits, properties);
+
+    if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to allocate buffer memory!");
+    }
+
+    vkBindBufferMemory(m_Device, buffer, bufferMemory, 0);
+}
+
+uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+{
+    VkPhysicalDeviceMemoryProperties memProperties{};
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+    {
+        const bool typeOk = (typeFilter & (1 << i)) != 0;
+        const bool propsOk = (memProperties.memoryTypes[i].propertyFlags & properties) == properties;
+
+        if (typeOk && propsOk)
+            return i;
+    }
+
+    throw std::runtime_error("Failed to find suitable memory type!");
+}
+
+VkCommandBuffer VulkanDevice::BeginSingleTimeCommands() const
+{
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_TransferCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    vkAllocateCommandBuffers(m_Device, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    return commandBuffer;
+}
+
+void VulkanDevice::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
+{
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_GraphicsQueue);
+
+    vkFreeCommandBuffers(m_Device, m_TransferCommandPool, 1, &commandBuffer);
+}
+
+void VulkanDevice::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
+{
+    VkCommandBuffer cmd = BeginSingleTimeCommands();
+
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = 0;
+    copyRegion.size = size;
+
+    vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    EndSingleTimeCommands(cmd);
 }

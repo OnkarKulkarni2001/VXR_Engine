@@ -2,66 +2,65 @@
 #include "VulkanDevice.h"
 #include "../core/Logger.h"
 
-VulkanVertexBuffer::VulkanVertexBuffer(
-    VulkanDevice* device,
-    const void* vertexData,
-    VkDeviceSize size
-)
-    : m_Device(device)
+#include <cstring>     // memcpy
+#include <stdexcept>
+
+VulkanVertexBuffer::VulkanVertexBuffer(VulkanDevice* device, const void* data, VkDeviceSize size)
+    : m_Device(device), m_Size(size)
 {
-    VkDevice vkDevice = m_Device->GetHandle();
+    if (!m_Device || !data || size == 0)
+        throw std::runtime_error("VulkanVertexBuffer: invalid ctor args");
 
-    // 1) Create buffer
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    // ------------------------------------------------------------
+    // A) Staging buffer (CPU visible)
+    // ------------------------------------------------------------
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
 
-    if (vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &m_Buffer) != VK_SUCCESS)
-    {
-        LOG_ERROR("Failed to create vertex buffer!");
-        return;
-    }
+    m_Device->CreateBuffer(
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer,
+        stagingMemory
+    );
 
-    // 2) Allocate memory
-    VkMemoryRequirements memReq{};
-    vkGetBufferMemoryRequirements(vkDevice, m_Buffer, &memReq);
+    // Map + copy vertex data into staging
+    void* mapped = nullptr;
+    vkMapMemory(m_Device->GetHandle(), stagingMemory, 0, size, 0, &mapped);
+    std::memcpy(mapped, data, static_cast<size_t>(size));
+    vkUnmapMemory(m_Device->GetHandle(), stagingMemory);
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memReq.size;
-    allocInfo.memoryTypeIndex =
-        m_Device->FindMemoryType(
-            memReq.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-        );
+    // ------------------------------------------------------------
+    // B) Final vertex buffer (GPU local)
+    // ------------------------------------------------------------
+    m_Device->CreateBuffer(
+        size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        m_Buffer,
+        m_Memory
+    );
 
-    if (vkAllocateMemory(vkDevice, &allocInfo, nullptr, &m_Memory) != VK_SUCCESS)
-    {
-        LOG_ERROR("Failed to allocate vertex buffer memory!");
-        return;
-    }
+    // ------------------------------------------------------------
+    // C) Copy staging -> GPU local
+    // ------------------------------------------------------------
+    m_Device->CopyBuffer(stagingBuffer, m_Buffer, size);
 
-    vkBindBufferMemory(vkDevice, m_Buffer, m_Memory, 0);
+    // Staging is no longer needed after the copy
+    vkDestroyBuffer(m_Device->GetHandle(), stagingBuffer, nullptr);
+    vkFreeMemory(m_Device->GetHandle(), stagingMemory, nullptr);
 
-    // 3) Upload data
-    void* data;
-    vkMapMemory(vkDevice, m_Memory, 0, size, 0, &data);
-    memcpy(data, vertexData, (size_t)size);
-    vkUnmapMemory(vkDevice, m_Memory);
-
-    LOG_INFO("Vertex buffer created.");
+    LOG_INFO("Vertex buffer created (DEVICE_LOCAL via staging).");
 }
 
 VulkanVertexBuffer::~VulkanVertexBuffer()
 {
-    VkDevice vkDevice = m_Device->GetHandle();
+    if (!m_Device) return;
 
-    if (m_Buffer)
-        vkDestroyBuffer(vkDevice, m_Buffer, nullptr);
+    if (m_Buffer != VK_NULL_HANDLE)
+        vkDestroyBuffer(m_Device->GetHandle(), m_Buffer, nullptr);
 
-    if (m_Memory)
-        vkFreeMemory(vkDevice, m_Memory, nullptr);
+    if (m_Memory != VK_NULL_HANDLE)
+        vkFreeMemory(m_Device->GetHandle(), m_Memory, nullptr);
 }

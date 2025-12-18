@@ -15,7 +15,7 @@ class VulkanPipeline;
 class VulkanVertexBuffer;
 class VulkanUniformBuffers;
 class VulkanDescriptors;
-
+class VulkanIndexBuffer;
 
 class Application {
 public:
@@ -44,4 +44,6 @@ private:
     VulkanVertexBuffer* m_VertexBuffer = nullptr;
     VulkanUniformBuffers* m_UniformBuffers = nullptr;
     VulkanDescriptors* m_Descriptors = nullptr;
+    VulkanIndexBuffer* m_IndexBuffer = nullptr;
+
 };
