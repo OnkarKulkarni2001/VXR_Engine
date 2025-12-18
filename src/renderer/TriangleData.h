@@ -1,9 +1,14 @@
 #pragma once
+#include <vector>
 #include "Vertex.h"
-#include <array>
 
-const std::array<Vertex, 3> TRIANGLE_VERTICES = {
-    Vertex{ {  0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-    Vertex{ {  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f } },
-    Vertex{ { -0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f } },
+inline const std::vector<Vertex> TRIANGLE_VERTICES = {
+    {{ 0.0f, -0.5f }, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f,  0.5f }, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f,  0.5f }, {0.0f, 0.0f, 1.0f}}
+};
+
+// NEW
+inline const std::vector<uint32_t> TRIANGLE_INDICES = {
+    0, 1, 2
 };

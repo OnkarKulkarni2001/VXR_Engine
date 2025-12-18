@@ -25,6 +25,21 @@ public:
 
     uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
+    void CreateBuffer(
+        VkDeviceSize size,
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties,
+        VkBuffer& buffer,
+        VkDeviceMemory& bufferMemory
+    );
+
+    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
+
+    // --- One-time command helpers (for copy/transition) ---
+    VkCommandBuffer BeginSingleTimeCommands() const;
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
+
+
 private:
     void PickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface);
     bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
@@ -46,10 +61,12 @@ private:
 
     VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
     VkQueue m_PresentQueue = VK_NULL_HANDLE;
+    VkCommandPool m_TransferCommandPool = VK_NULL_HANDLE;
 
     uint32_t m_GraphicsFamilyIndex = UINT32_MAX;
     uint32_t m_PresentFamilyIndex = UINT32_MAX;
 
     // NEW: MSAA sample count
     VkSampleCountFlagBits m_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
 };

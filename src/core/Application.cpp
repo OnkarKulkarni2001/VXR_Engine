@@ -19,6 +19,7 @@
 #include "renderer/VulkanUniformBuffers.h"
 #include "renderer/VulkanDescriptors.h"
 #include "renderer/CameraUBO.h"
+#include "renderer/VulkanIndexBuffer.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -38,6 +39,7 @@ Application::~Application()
     // Destroy in reverse order of creation
     delete m_Sync;
     delete m_CommandBuffers;
+    delete m_IndexBuffer;
     delete m_CommandPool;
 
     delete m_Descriptors;
@@ -66,6 +68,7 @@ Application::~Application()
 
     m_Sync = nullptr;
     m_CommandBuffers = nullptr;
+    m_IndexBuffer = nullptr;
     m_CommandPool = nullptr;
     m_Pipeline = nullptr;
     m_Framebuffers = nullptr;
@@ -161,6 +164,14 @@ void Application::Run()
         TRIANGLE_VERTICES.data(),
         vbSize
     );
+
+	// Index buffer creation
+    m_IndexBuffer = new VulkanIndexBuffer(
+        m_Device,
+        TRIANGLE_INDICES.data(),
+        TRIANGLE_INDICES.size() * sizeof(uint32_t)
+    );
+
 
     // 10) Command Pool + Command Buffers
     m_CommandPool = new VulkanCommandPool(m_Device);
@@ -311,7 +322,22 @@ void Application::DrawFrame()
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
 
     // Draw 3 vertices
-    vkCmdDraw(cmd, 3, 1, 0, 0);
+    vkCmdBindIndexBuffer(
+        cmd,
+        m_IndexBuffer->GetBuffer(),
+        0,
+        VK_INDEX_TYPE_UINT32
+    );
+
+    vkCmdDrawIndexed(
+        cmd,
+        m_IndexBuffer->GetIndexCount(),
+        1,
+        0,
+        0,
+        0
+    );
+
 
     vkCmdEndRenderPass(cmd);
 
