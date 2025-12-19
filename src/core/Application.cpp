@@ -21,6 +21,7 @@
 #include "renderer/CameraUBO.h"
 #include "renderer/VulkanIndexBuffer.h"
 #include "renderer/Mesh.h"
+#include "renderer/PushConstants.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -332,6 +333,24 @@ void Application::DrawFrame()
         &set,
         0, nullptr
     );
+
+
+	// Push constants (model matrix)
+    PushConstants pc{};
+    pc.model = glm::rotate(glm::mat4(1.0f),
+        (float)glfwGetTime(),
+        glm::vec3(0, 0, 1));
+    pc.color = glm::vec4(1, 1, 1, 1); // white (try different colors!)
+
+    vkCmdPushConstants(
+        cmd,
+        m_Pipeline->GetLayout(),
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        0,
+        sizeof(PushConstants),
+        &pc
+    );
+
 
 
 	// draw mesh (it binds buffer as well)
