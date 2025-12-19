@@ -16,6 +16,6 @@
     "\\src\\renderer\\pipeline",
     "\\src\\renderer\\shaders"
   ],
-  "SelectedNode": "\\src\\renderer\\TriangleData.h",
+  "SelectedNode": "\\src\\core\\Application.cpp",
   "PreviewInSolutionExplorer": false
 }

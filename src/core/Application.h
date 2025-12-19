@@ -16,6 +16,7 @@ class VulkanVertexBuffer;
 class VulkanUniformBuffers;
 class VulkanDescriptors;
 class VulkanIndexBuffer;
+class Mesh;
 
 class Application {
 public:
@@ -45,5 +46,6 @@ private:
     VulkanUniformBuffers* m_UniformBuffers = nullptr;
     VulkanDescriptors* m_Descriptors = nullptr;
     VulkanIndexBuffer* m_IndexBuffer = nullptr;
-
+    
+    Mesh* m_TriangleMesh = nullptr;
 };
