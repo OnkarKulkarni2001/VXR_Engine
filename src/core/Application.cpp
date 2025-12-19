@@ -20,6 +20,7 @@
 #include "renderer/VulkanDescriptors.h"
 #include "renderer/CameraUBO.h"
 #include "renderer/VulkanIndexBuffer.h"
+#include "renderer/Mesh.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -38,6 +39,7 @@ Application::~Application()
 
     // Destroy in reverse order of creation
     delete m_Sync;
+    delete m_TriangleMesh;
     delete m_CommandBuffers;
     delete m_IndexBuffer;
     delete m_CommandPool;
@@ -80,6 +82,7 @@ Application::~Application()
     m_Device = nullptr;
     m_Instance = nullptr;
     m_Window = nullptr;
+    m_TriangleMesh = nullptr;
 }
 
 void Application::Run()
@@ -171,6 +174,19 @@ void Application::Run()
         TRIANGLE_INDICES.data(),
         TRIANGLE_INDICES.size() * sizeof(uint32_t)
     );
+
+
+	//  Mesh creation
+    m_TriangleMesh = new Mesh(
+        m_Device,
+        TRIANGLE_VERTICES.data(),
+        VkDeviceSize(TRIANGLE_VERTICES.size() * sizeof(TRIANGLE_VERTICES[0])),
+        sizeof(TRIANGLE_VERTICES[0]),
+        TRIANGLE_INDICES.data(),
+        VkDeviceSize(TRIANGLE_INDICES.size() * sizeof(TRIANGLE_INDICES[0])),
+        (uint32_t)TRIANGLE_INDICES.size()
+    );
+
 
 
     // 10) Command Pool + Command Buffers
@@ -315,28 +331,8 @@ void Application::DrawFrame()
     );
 
 
-    // Bind vertex buffer
-    VkBuffer vertexBuffers[] = { m_VertexBuffer->GetBuffer() };
-    VkDeviceSize offsets[] = { 0 };
-
-    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-
-    // Draw 3 vertices
-    vkCmdBindIndexBuffer(
-        cmd,
-        m_IndexBuffer->GetBuffer(),
-        0,
-        VK_INDEX_TYPE_UINT32
-    );
-
-    vkCmdDrawIndexed(
-        cmd,
-        m_IndexBuffer->GetIndexCount(),
-        1,
-        0,
-        0,
-        0
-    );
+	// draw mesh (it binds buffer as well)
+	m_TriangleMesh->Draw(cmd);
 
 
     vkCmdEndRenderPass(cmd);
