@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include <cstdint>
 
 class VulkanDevice;
@@ -20,6 +21,9 @@ public:
     void Draw(VkCommandBuffer cmd) const;
 
     uint32_t GetIndexCount() const { return m_IndexCount; }
+
+public:
+    glm::mat4 Model = glm::mat4(1.0f);
 
 private:
     VulkanDevice* m_Device = nullptr;
