@@ -1,4 +1,4 @@
-#include "Application.h"
+﻿#include "Application.h"
 #include "Logger.h"
 
 #include "renderer/VulkanInstance.h"
@@ -157,7 +157,7 @@ void Application::Run()
         "shaders/triangle.frag.spv"
     );
 
-    // 9) Vertex buffer (create after device is ready; swapchain order doesn�t matter,
+    // 9) Vertex buffer (create after device is ready; swapchain order doesn’t matter,
     // but this is a cleaner lifetime grouping.)
     const VkDeviceSize vbSize =
         static_cast<VkDeviceSize>(TRIANGLE_VERTICES.size() * sizeof(TRIANGLE_VERTICES[0]));
@@ -260,6 +260,9 @@ void Application::DrawFrame()
     uint32_t frame = m_Sync->GetCurrentFrame();
 
     CameraUBO ubo{};
+
+    ubo.model = glm::mat4(1.0f);
+
     ubo.view = glm::lookAt(
         glm::vec3(0.0f, 0.0f, 2.0f),
         glm::vec3(0.0f, 0.0f, 0.0f),
