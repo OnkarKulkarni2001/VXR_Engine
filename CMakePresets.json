@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "vcpkg",
+      "displayName": "VXR Engine (vcpkg)",
+      "generator": "Ninja",
+      "binaryDir": "out/build/vcpkg",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    }
+  ]
+}

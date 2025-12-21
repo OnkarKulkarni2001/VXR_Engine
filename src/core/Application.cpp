@@ -26,6 +26,7 @@
 #include "renderer/Scene.h"
 #include "renderer/RenderQueue.h"
 #include "renderer/Camera.h"
+#include "input/CameraController.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -45,6 +46,7 @@ Application::~Application()
     // Destroy in reverse order of creation
     delete m_Sync;
     delete m_TriangleMesh;
+    delete m_CameraController;
     delete m_Camera;
 
     delete m_CommandBuffers;
@@ -91,6 +93,7 @@ Application::~Application()
     m_Window = nullptr;
     m_TriangleMesh = nullptr;
     m_Camera = nullptr;
+    m_CameraController = nullptr;
 
 }
 
@@ -184,6 +187,11 @@ void Application::Run()
         TRIANGLE_INDICES.size() * sizeof(uint32_t)
     );
 
+
+    // Disable cursor for camera movement
+    GLFWwindow* wnd = m_Window->GetHandle();
+    //glfwSetInputMode(wnd, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 	// Camera setup
     m_Camera = new Camera();
     m_Camera->SetPosition({ 0.0f, 0.0f, 2.0f });
@@ -191,6 +199,9 @@ void Application::Run()
     m_Camera->SetPerspective(glm::radians(60.0f), 0.1f, 100.0f);
 
     m_LastTime = (float)glfwGetTime();
+
+	// Camera controller 
+    m_CameraController = new CameraController(m_Camera);
 
 
 	//  Mesh creation
@@ -280,51 +291,13 @@ void Application::DrawFrame()
         return;
     }
 
-	//// Update uniform buffers
- //   uint32_t frame = m_Sync->GetCurrentFrame();
-
- //   CameraUBO ubo{};
-
- //   ubo.view = glm::lookAt(
- //       glm::vec3(0.0f, 0.0f, 2.0f),
- //       glm::vec3(0.0f, 0.0f, 0.0f),
- //       glm::vec3(0.0f, 1.0f, 0.0f)
- //   );
-
- //   float aspect =
- //       (float)m_Swapchain->GetExtent().width /
- //       (float)m_Swapchain->GetExtent().height;
-
- //   ubo.proj = glm::perspective(
- //       glm::radians(60.0f),
- //       aspect,
- //       0.1f,
- //       100.0f
- //   );
-
- //   // Vulkan clip-space correction
- //   ubo.proj[1][1] *= -1;
-
- //   m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
 
     // --- Delta time
     float now = (float)glfwGetTime();
     float dt = now - m_LastTime;
     m_LastTime = now;
 
-    // --- Basic camera movement (WASD + QE). Adjust speed as you like.
-    const float moveSpeed = 2.0f; // units/sec
-
-    // You need a GLFWwindow* here. Use whichever getter your Window class provides.
-    // Common patterns: m_Window->GetHandle() or m_Window->GetGLFWwindow()
-    GLFWwindow* wnd = m_Window->GetHandle();
-
-    if (glfwGetKey(wnd, GLFW_KEY_W) == GLFW_PRESS) m_Camera->MoveForward(moveSpeed * dt);
-    if (glfwGetKey(wnd, GLFW_KEY_S) == GLFW_PRESS) m_Camera->MoveForward(-moveSpeed * dt);
-    if (glfwGetKey(wnd, GLFW_KEY_D) == GLFW_PRESS) m_Camera->MoveRight(moveSpeed * dt);
-    if (glfwGetKey(wnd, GLFW_KEY_A) == GLFW_PRESS) m_Camera->MoveRight(-moveSpeed * dt);
-    if (glfwGetKey(wnd, GLFW_KEY_E) == GLFW_PRESS) m_Camera->MoveUp(moveSpeed * dt);
-    if (glfwGetKey(wnd, GLFW_KEY_Q) == GLFW_PRESS) m_Camera->MoveUp(-moveSpeed * dt);
+    m_CameraController->Update(m_Window->GetHandle(), dt);
 
     // --- Update uniform buffer (per-frame)
     uint32_t frame = m_Sync->GetCurrentFrame();
