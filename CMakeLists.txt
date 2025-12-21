@@ -31,7 +31,7 @@ find_package(glm CONFIG REQUIRED)
 # --------------------------------
 # Engine executable
 # --------------------------------
-add_executable(VXR_Engine ${ENGINE_SOURCES}  "src/renderer/VulkanVertexBuffer.h" "src/renderer/VulkanVertexBuffer.cpp"  "src/renderer/Vertex.h" "src/renderer/TriangleData.h" "src/renderer/UniformBufferObject.h" "src/renderer/VulkanUniformBuffers.h" "src/renderer/VulkanUniformBuffers.cpp" "src/renderer/VulkanDescriptors.h" "src/renderer/VulkanDescriptors.cpp" "src/renderer/CameraUBO.h" "src/renderer/VulkanCameraBuffers.h" "src/renderer/VulkanIndexBuffer.h" "src/renderer/VulkanIndexBuffer.cpp"  "src/renderer/Mesh.h" "src/renderer/Mesh.cpp" "src/renderer/Transform.h"  "src/renderer/Model.h" "src/renderer/Model.cpp" "src/renderer/PushConstants.h")
+add_executable(VXR_Engine ${ENGINE_SOURCES}  "src/renderer/VulkanVertexBuffer.h" "src/renderer/VulkanVertexBuffer.cpp"  "src/renderer/Vertex.h" "src/renderer/TriangleData.h" "src/renderer/UniformBufferObject.h" "src/renderer/VulkanUniformBuffers.h" "src/renderer/VulkanUniformBuffers.cpp" "src/renderer/VulkanDescriptors.h" "src/renderer/VulkanDescriptors.cpp" "src/renderer/CameraUBO.h" "src/renderer/VulkanCameraBuffers.h" "src/renderer/VulkanIndexBuffer.h" "src/renderer/VulkanIndexBuffer.cpp"  "src/renderer/Mesh.h" "src/renderer/Mesh.cpp" "src/renderer/Transform.h"  "src/renderer/Model.h" "src/renderer/Model.cpp" "src/renderer/PushConstants.h" "src/renderer/RenderObject.h")
 
 # --------------------------------
 # Link libraries

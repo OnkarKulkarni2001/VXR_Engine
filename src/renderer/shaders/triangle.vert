@@ -12,7 +12,7 @@ layout(set = 0, binding = 0) uniform CameraUBO {
 
 layout(push_constant) uniform Push {
     mat4 model;
-    vec4 tint;
+    //vec4 tint;
 } pc;
 
 void main() {
