@@ -4,6 +4,6 @@
 struct PushConstants
 {
     glm::mat4 model;   // 64 bytes
-    glm::vec4 color;   // 16 bytes
+    glm::vec4 tint;   // 16 bytes
     // total = 80 bytes (safe)
 };
