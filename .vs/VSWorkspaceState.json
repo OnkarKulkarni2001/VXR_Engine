@@ -16,6 +16,6 @@
     "\\src\\renderer\\pipeline",
     "\\src\\renderer\\shaders"
   ],
-  "SelectedNode": "\\CMakeLists.txt",
+  "SelectedNode": "\\src\\core\\Application.h",
   "PreviewInSolutionExplorer": false
 }

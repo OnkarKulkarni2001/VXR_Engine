@@ -23,6 +23,7 @@ class VulkanIndexBuffer;
 class Mesh;
 class RenderObject;
 class Camera;
+class CameraController;
 
 class Application {
 public:
@@ -60,5 +61,15 @@ private:
     Mesh* m_TriangleMesh = nullptr;
 
     Camera* m_Camera = nullptr;
+    CameraController* m_CameraController = nullptr;
+
     float   m_LastTime = 0.0f;
+
+	// Mouse input handling
+    bool   m_FirstMouse = true;
+    double m_LastMouseX = 0.0;
+    double m_LastMouseY = 0.0;
+
+    float  m_MouseSensitivity = 0.0025f; // radians per pixel (tweak later)
+
 };
