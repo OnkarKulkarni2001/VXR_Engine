@@ -242,32 +242,19 @@ void Application::Run()
         m_MSAAColor
     );
 
+	// Pipeline set layouts
+    std::vector<VkDescriptorSetLayout> pipelineSetLayouts = {
+        m_Descriptors->GetLayout() // set = 0
+    };
+
     // 8) Pipeline (triangle shaders)
     m_Pipeline = new VulkanPipeline(
         m_Device,
         m_Swapchain,
         m_RenderPass,
-		m_Descriptors->GetLayout(),
+		pipelineSetLayouts,
         "shaders/triangle.vert.spv",
         "shaders/triangle.frag.spv"
-    );
-
-    // 9) Vertex buffer (create after device is ready; swapchain order doesn’t matter,
-    // but this is a cleaner lifetime grouping.)
-    const VkDeviceSize vbSize =
-        static_cast<VkDeviceSize>(TRIANGLE_VERTICES.size() * sizeof(TRIANGLE_VERTICES[0]));
-
-    m_VertexBuffer = new VulkanVertexBuffer(
-        m_Device,
-        TRIANGLE_VERTICES.data(),
-        vbSize
-    );
-
-	// Index buffer creation
-    m_IndexBuffer = new VulkanIndexBuffer(
-        m_Device,
-        TRIANGLE_INDICES.data(),
-        TRIANGLE_INDICES.size() * sizeof(uint32_t)
     );
 
 
@@ -306,21 +293,12 @@ void Application::Run()
     {
         RenderObject& obj = m_Scene.CreateObject();
         obj.mesh = mesh.get();
-        obj.pipeline = m_Pipeline;
+		obj.material = nullptr; // TODO: assign material
         obj.transform.position = { 0.0f, 0.0f, 0.0f };
 
         m_OwnedMeshes.push_back(std::move(mesh));
     }
 
-
-	// Render objects creation
-    RenderObject& tri = m_Scene.CreateObject();
-    tri.mesh = m_TriangleMesh;
-    tri.pipeline = m_Pipeline;
-
-    tri.transform.position = { 0.0f, 0.0f, 0.0f };
-    tri.transform.rotation = { 0.0f, 0.0f, 0.0f };
-    tri.transform.scale = { 1.0f, 1.0f, 1.0f };
 
     // 10) Command Pool + Command Buffers
     m_CommandPool = new VulkanCommandPool(m_Device);
@@ -446,20 +424,6 @@ void Application::DrawFrame()
     vkCmdBeginRenderPass(cmd, &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
 
 
-
-	// Bind descriptor set (per-frame)
-    VkDescriptorSet set = m_Descriptors->GetSet(frame);
-
-    vkCmdBindDescriptorSets(
-        cmd,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_Pipeline->GetLayout(),
-        0, 1,
-        &set,
-        0, nullptr
-    );
-
-
 	// draw meshes
     RenderQueue renderQueue;
     renderQueue.Clear();
@@ -476,6 +440,26 @@ void Application::DrawFrame()
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             rc.pipeline->GetHandle()
         );
+
+        // Set 0 (global/per-frame)
+        VkDescriptorSet globalSet0 = m_Descriptors->GetSet(frame);
+
+        // Set 1 (material) 
+        VkDescriptorSet materialSet1 = rc.materialSet; 
+
+        VkDescriptorSet sets[] = { globalSet0, materialSet1 };
+
+        vkCmdBindDescriptorSets(
+            cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            rc.pipeline->GetLayout(),   // IMPORTANT: match the currently bound pipeline layout
+            0,
+            2,
+            sets,
+            0,
+            nullptr
+        );
+
 
         PushConstants pc{};
         pc.model = rc.model; 

@@ -36,7 +36,7 @@ find_package(assimp CONFIG REQUIRED)
 # --------------------------------
 # Engine executable
 # --------------------------------
-add_executable(VXR_Engine ${ENGINE_SOURCES} "src/asset/ModelLoader.h" "src/asset/ModelLoader.cpp" "src/renderer/Vertex3D.h")
+add_executable(VXR_Engine ${ENGINE_SOURCES} "src/asset/ModelLoader.h" "src/asset/ModelLoader.cpp" "src/renderer/Vertex3D.h" "src/renderer/MaterialTemplate.h" "src/renderer/MaterialTemplate.cpp" "src/renderer/VulkanMaterialDescriptors.h" "src/renderer/VulkanMaterialDescriptors.cpp" "src/renderer/MaterialInstance.h" "src/renderer/MaterialInstance.cpp")
 
 # --------------------------------
 # Link libraries

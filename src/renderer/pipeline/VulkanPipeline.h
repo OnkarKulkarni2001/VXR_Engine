@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <string>
+#include <vector>
 
 class VulkanDevice;
 class VulkanSwapchain;
@@ -12,7 +13,7 @@ public:
     VulkanPipeline(VulkanDevice* device,
         VulkanSwapchain* swapchain,
         VulkanRenderPass* renderPass,
-        VkDescriptorSetLayout descriptorSetLayout,
+        const std::vector<VkDescriptorSetLayout>& setLayouts,
         const std::string& vertSpvPath,
         const std::string& fragSpvPath);
 

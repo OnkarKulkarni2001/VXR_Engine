@@ -1,5 +1,6 @@
 #include "RenderQueue.h"
 #include "RenderObject.h"
+#include "MaterialInstance.h"   // REQUIRED
 
 void RenderQueue::Clear()
 {
@@ -8,15 +9,21 @@ void RenderQueue::Clear()
 
 void RenderQueue::Submit(const RenderObject& obj)
 {
-    if (!obj.mesh || !obj.pipeline)
+    // Validate required data
+    if (!obj.mesh || !obj.material)
         return;
 
     RenderCommand cmd{};
     cmd.mesh = obj.mesh;
-    cmd.pipeline = obj.pipeline;
 
-    // IMPORTANT: use YOUR existing Transform logic
+    // Pipeline comes from MaterialTemplate via MaterialInstance
+    cmd.pipeline = obj.material->GetPipeline();
+
+    // Per-object transform
     cmd.model = obj.transform.ToMatrix();
+
+    // IMPORTANT: set = 1 descriptor set (albedo + normal)
+    cmd.materialSet = obj.material->GetDescriptorSet();
 
     m_Commands.push_back(cmd);
 }
