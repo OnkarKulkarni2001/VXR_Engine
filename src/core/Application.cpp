@@ -262,8 +262,6 @@ void Application::DrawFrame()
 
     CameraUBO ubo{};
 
-    ubo.model = glm::mat4(1.0f);
-
     ubo.view = glm::lookAt(
         glm::vec3(0.0f, 0.0f, 2.0f),
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -340,7 +338,7 @@ void Application::DrawFrame()
     pc.model = glm::rotate(glm::mat4(1.0f),
         (float)glfwGetTime(),
         glm::vec3(0, 0, 1));
-    pc.color = glm::vec4(1, 1, 1, 1); // white (try different colors!)
+    pc.tint = glm::vec4(1, 1, 1, 1); // white (try different colors!)
 
     vkCmdPushConstants(
         cmd,
