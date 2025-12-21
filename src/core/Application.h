@@ -1,5 +1,6 @@
 #pragma once
 #include "Window.h"
+#include <vector>
 
 class VulkanInstance;
 class VulkanDevice;
@@ -17,6 +18,7 @@ class VulkanUniformBuffers;
 class VulkanDescriptors;
 class VulkanIndexBuffer;
 class Mesh;
+class RenderObject;
 
 class Application {
 public:
@@ -26,6 +28,9 @@ public:
     void Run();
 
     void DrawFrame();
+    
+public:
+    std::vector<RenderObject> m_RenderObjects;
 
 private:
     Window* m_Window = nullptr;

@@ -22,6 +22,7 @@
 #include "renderer/VulkanIndexBuffer.h"
 #include "renderer/Mesh.h"
 #include "renderer/PushConstants.h"
+#include "renderer/RenderObject.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -188,7 +189,13 @@ void Application::Run()
         (uint32_t)TRIANGLE_INDICES.size()
     );
 
+	// Render objects creation
+    RenderObject tri{};
+    tri.mesh = m_TriangleMesh;
+    tri.pipeline = m_Pipeline;
+    tri.transform.position = { 0, 0, 0 };
 
+    m_RenderObjects.push_back(tri);
 
     // 10) Command Pool + Command Buffers
     m_CommandPool = new VulkanCommandPool(m_Device);
@@ -317,8 +324,7 @@ void Application::DrawFrame()
 
     vkCmdBeginRenderPass(cmd, &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
 
-    // Bind pipeline
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
+
 
 	// Bind descriptor set (per-frame)
     VkDescriptorSet set = m_Descriptors->GetSet(frame);
@@ -333,26 +339,31 @@ void Application::DrawFrame()
     );
 
 
-	// Push constants (model matrix)
-    PushConstants pc{};
-    pc.model = glm::rotate(glm::mat4(1.0f),
-        (float)glfwGetTime(),
-        glm::vec3(0, 0, 1));
-    pc.tint = glm::vec4(1, 1, 1, 1); // white (try different colors!)
+	// draw meshes
 
-    vkCmdPushConstants(
-        cmd,
-        m_Pipeline->GetLayout(),
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        0,
-        sizeof(PushConstants),
-        &pc
-    );
+    for (const RenderObject& obj : m_RenderObjects)
+    {
+        // Bind pipeline
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
 
+        // Push constants (model matrix)
+        PushConstants pc{};
+        pc.model = glm::rotate(glm::mat4(1.0f),
+            (float)glfwGetTime(),
+            glm::vec3(0, 0, 1));
+        //pc.tint = glm::vec4(1, 1, 1, 1); // white (try different colors!)
 
+        vkCmdPushConstants(
+            cmd,
+            m_Pipeline->GetLayout(),
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            sizeof(PushConstants),
+            &pc
+        );
 
-	// draw mesh (it binds buffer as well)
-	m_TriangleMesh->Draw(cmd);
+        obj.mesh->Draw(cmd);
+	}
 
 
     vkCmdEndRenderPass(cmd);
