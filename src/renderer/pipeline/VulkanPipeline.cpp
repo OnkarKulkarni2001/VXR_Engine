@@ -6,7 +6,7 @@
 #include "core/Logger.h"
 #include "renderer/PushConstants.h"
 
-#include "../Vertex.h"
+#include "renderer/Vertex3D.h"
 
 #include <cstddef>   // offsetof
 #include <fstream>
@@ -86,26 +86,11 @@ VulkanPipeline::VulkanPipeline(
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertStage, fragStage };
 
     // ------------------------------------------------------------
-    // Vertex Input (REAL vertex buffer path)
+    // Vertex Input (Vertex3D)
     // ------------------------------------------------------------
-    VkVertexInputBindingDescription binding{};
-    binding.binding = 0;
-    binding.stride = sizeof(Vertex);
-    binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    auto binding = Vertex3D::GetBindingDescription();
+    auto attributes = Vertex3D::GetAttributeDescriptions();
 
-    std::array<VkVertexInputAttributeDescription, 2> attributes{};
-
-    // location = 0 : vec2 position
-    attributes[0].binding = 0;
-    attributes[0].location = 0;
-    attributes[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributes[0].offset = offsetof(Vertex, pos);
-
-    // location = 1 : vec3 color
-    attributes[1].binding = 0;
-    attributes[1].location = 1;
-    attributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributes[1].offset = offsetof(Vertex, color);
 
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -148,7 +133,7 @@ VulkanPipeline::VulkanPipeline(
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthBiasEnable = VK_FALSE;
 

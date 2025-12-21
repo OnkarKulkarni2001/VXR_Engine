@@ -4,6 +4,7 @@
 
 #include "Window.h"
 #include <vector>
+#include <memory>
 
 class VulkanInstance;
 class VulkanDevice;
@@ -30,12 +31,15 @@ public:
     Application();
     ~Application();
 
+    void Shutdown();
+
     void Run();
 
     void DrawFrame();
     
 public:
     std::vector<RenderObject> m_RenderObjects;
+    std::vector<std::unique_ptr<Mesh>> m_OwnedMeshes;
     Scene m_Scene;
 
 private:

@@ -27,6 +27,7 @@
 #include "renderer/RenderQueue.h"
 #include "renderer/Camera.h"
 #include "input/CameraController.h"
+#include "asset/ModelLoader.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -39,23 +40,105 @@ Application::Application()
 
 Application::~Application()
 {
-    // If device exists, ensure GPU is idle before destroying GPU resources
-    if (m_Device)
-        vkDeviceWaitIdle(m_Device->GetHandle());
+    Shutdown();
+    //// If device exists, ensure GPU is idle before destroying GPU resources
+    //if (m_Device)
+    //    vkDeviceWaitIdle(m_Device->GetHandle());
 
-    // Destroy in reverse order of creation
-    delete m_Sync;
+    //// Destroy in reverse order of creation
+    //delete m_Sync;
+    //delete m_TriangleMesh;
+    //delete m_CameraController;
+    //delete m_Camera;
+
+    //delete m_CommandBuffers;
+    //delete m_IndexBuffer;
+    //delete m_CommandPool;
+
+    //delete m_Descriptors;
+    //delete m_UniformBuffers;
+
+    //delete m_Pipeline;
+    //delete m_Framebuffers;
+    //delete m_RenderPass;
+    //delete m_MSAAColor;
+    //delete m_DepthBuffer;
+    //delete m_Swapchain;
+
+    //delete m_VertexBuffer;
+
+    //delete m_Device;
+
+    //// IMPORTANT: Destroy surface BEFORE instance
+    //if (m_Instance && m_Surface != VK_NULL_HANDLE)
+    //{
+    //    vkDestroySurfaceKHR(m_Instance->GetHandle(), m_Surface, nullptr);
+    //    m_Surface = VK_NULL_HANDLE;
+    //}
+
+    //delete m_Instance;
+    //delete m_Window;
+
+    //m_Sync = nullptr;
+    //m_CommandBuffers = nullptr;
+    //m_IndexBuffer = nullptr;
+    //m_CommandPool = nullptr;
+    //m_Pipeline = nullptr;
+    //m_Framebuffers = nullptr;
+    //m_RenderPass = nullptr;
+    //m_MSAAColor = nullptr;
+    //m_DepthBuffer = nullptr;
+    //m_Swapchain = nullptr;
+    //m_VertexBuffer = nullptr;
+    //m_Device = nullptr;
+    //m_Instance = nullptr;
+    //m_Window = nullptr;
+    //m_TriangleMesh = nullptr;
+    //m_Camera = nullptr;
+    //m_CameraController = nullptr;
+
+}
+
+void Application::Shutdown()
+{
+    if (!m_Device)
+        return;
+
+    LOG_INFO("Application Shutdown started");
+
+    // 1️⃣ Ensure GPU is idle
+    vkDeviceWaitIdle(m_Device->GetHandle());
+
+    // 2️⃣ Destroy scene + mesh ownership FIRST
+    m_Scene.Clear();          // if implemented
+    m_RenderObjects.clear();  // safe
+    m_OwnedMeshes.clear();    // 🔥 MOST IMPORTANT FIX
+
+    // Old demo mesh path (temporary, keep until removed)
     delete m_TriangleMesh;
-    delete m_CameraController;
-    delete m_Camera;
+    m_TriangleMesh = nullptr;
 
-    delete m_CommandBuffers;
+    delete m_VertexBuffer;
     delete m_IndexBuffer;
+    m_VertexBuffer = nullptr;
+    m_IndexBuffer = nullptr;
+
+    // 3️⃣ Destroy per-frame + draw infrastructure
+    delete m_Sync;
+    delete m_CommandBuffers;
     delete m_CommandPool;
 
+    m_Sync = nullptr;
+    m_CommandBuffers = nullptr;
+    m_CommandPool = nullptr;
+
+    // 4️⃣ Descriptor + uniform systems
     delete m_Descriptors;
     delete m_UniformBuffers;
+    m_Descriptors = nullptr;
+    m_UniformBuffers = nullptr;
 
+    // 5️⃣ Pipeline + render targets
     delete m_Pipeline;
     delete m_Framebuffers;
     delete m_RenderPass;
@@ -63,11 +146,24 @@ Application::~Application()
     delete m_DepthBuffer;
     delete m_Swapchain;
 
-    delete m_VertexBuffer;
+    m_Pipeline = nullptr;
+    m_Framebuffers = nullptr;
+    m_RenderPass = nullptr;
+    m_MSAAColor = nullptr;
+    m_DepthBuffer = nullptr;
+    m_Swapchain = nullptr;
 
+    // 6️⃣ Camera & input
+    delete m_CameraController;
+    delete m_Camera;
+    m_CameraController = nullptr;
+    m_Camera = nullptr;
+
+    // 7️⃣ Destroy device LAST
     delete m_Device;
+    m_Device = nullptr;
 
-    // IMPORTANT: Destroy surface BEFORE instance
+    // 8️⃣ Surface before instance
     if (m_Instance && m_Surface != VK_NULL_HANDLE)
     {
         vkDestroySurfaceKHR(m_Instance->GetHandle(), m_Surface, nullptr);
@@ -75,27 +171,14 @@ Application::~Application()
     }
 
     delete m_Instance;
-    delete m_Window;
-
-    m_Sync = nullptr;
-    m_CommandBuffers = nullptr;
-    m_IndexBuffer = nullptr;
-    m_CommandPool = nullptr;
-    m_Pipeline = nullptr;
-    m_Framebuffers = nullptr;
-    m_RenderPass = nullptr;
-    m_MSAAColor = nullptr;
-    m_DepthBuffer = nullptr;
-    m_Swapchain = nullptr;
-    m_VertexBuffer = nullptr;
-    m_Device = nullptr;
     m_Instance = nullptr;
-    m_Window = nullptr;
-    m_TriangleMesh = nullptr;
-    m_Camera = nullptr;
-    m_CameraController = nullptr;
 
+    delete m_Window;
+    m_Window = nullptr;
+
+    LOG_INFO("Application Shutdown completed");
 }
+
 
 void Application::Run()
 {
@@ -205,15 +288,30 @@ void Application::Run()
 
 
 	//  Mesh creation
-    m_TriangleMesh = new Mesh(
+    //m_TriangleMesh = new Mesh(
+    //    m_Device,
+    //    TRIANGLE_VERTICES.data(),
+    //    VkDeviceSize(TRIANGLE_VERTICES.size() * sizeof(TRIANGLE_VERTICES[0])),
+    //    sizeof(TRIANGLE_VERTICES[0]),
+    //    TRIANGLE_INDICES.data(),
+    //    VkDeviceSize(TRIANGLE_INDICES.size() * sizeof(TRIANGLE_INDICES[0])),
+    //    (uint32_t)TRIANGLE_INDICES.size()
+    //);
+    auto meshes = ModelLoader::LoadStaticModel(
         m_Device,
-        TRIANGLE_VERTICES.data(),
-        VkDeviceSize(TRIANGLE_VERTICES.size() * sizeof(TRIANGLE_VERTICES[0])),
-        sizeof(TRIANGLE_VERTICES[0]),
-        TRIANGLE_INDICES.data(),
-        VkDeviceSize(TRIANGLE_INDICES.size() * sizeof(TRIANGLE_INDICES[0])),
-        (uint32_t)TRIANGLE_INDICES.size()
+        "G:/VXR_Engine/assets/monkey.glb" // or .fbx / .obj
     );
+
+    for (auto& mesh : meshes)
+    {
+        RenderObject& obj = m_Scene.CreateObject();
+        obj.mesh = mesh.get();
+        obj.pipeline = m_Pipeline;
+        obj.transform.position = { 0.0f, 0.0f, 0.0f };
+
+        m_OwnedMeshes.push_back(std::move(mesh));
+    }
+
 
 	// Render objects creation
     RenderObject& tri = m_Scene.CreateObject();
