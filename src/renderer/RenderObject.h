@@ -3,11 +3,12 @@
 #include "Transform.h"
 
 class Mesh;
-class VulkanPipeline;
+class MaterialInstance;
 
 struct RenderObject
 {
     Transform transform;
     Mesh* mesh = nullptr;
-    VulkanPipeline* pipeline = nullptr;
+
+    MaterialInstance* material = nullptr;
 };

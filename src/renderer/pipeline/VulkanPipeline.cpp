@@ -49,7 +49,7 @@ VulkanPipeline::VulkanPipeline(
     VulkanDevice* device,
     VulkanSwapchain* swapchain,
     VulkanRenderPass* renderPass,
-    VkDescriptorSetLayout descriptorSetLayout,
+    const std::vector<VkDescriptorSetLayout>& setLayouts,
     const std::string& vertSpvPath,
     const std::string& fragSpvPath)
     : m_Device(device)
@@ -174,8 +174,8 @@ VulkanPipeline::VulkanPipeline(
     // --- Pipeline layout ---
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushRange;
 

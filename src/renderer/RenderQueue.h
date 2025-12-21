@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 class Mesh;
 class VulkanPipeline;
@@ -11,6 +12,7 @@ struct RenderCommand
     Mesh* mesh = nullptr;
     VulkanPipeline* pipeline = nullptr;
     glm::mat4 model;
+    VkDescriptorSet materialSet;
 };
 
 class RenderQueue
