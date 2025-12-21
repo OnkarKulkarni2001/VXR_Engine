@@ -1,4 +1,7 @@
 #pragma once
+
+#include "renderer/Scene.h"
+
 #include "Window.h"
 #include <vector>
 
@@ -19,6 +22,7 @@ class VulkanDescriptors;
 class VulkanIndexBuffer;
 class Mesh;
 class RenderObject;
+class Camera;
 
 class Application {
 public:
@@ -31,6 +35,7 @@ public:
     
 public:
     std::vector<RenderObject> m_RenderObjects;
+    Scene m_Scene;
 
 private:
     Window* m_Window = nullptr;
@@ -53,4 +58,7 @@ private:
     VulkanIndexBuffer* m_IndexBuffer = nullptr;
     
     Mesh* m_TriangleMesh = nullptr;
+
+    Camera* m_Camera = nullptr;
+    float   m_LastTime = 0.0f;
 };

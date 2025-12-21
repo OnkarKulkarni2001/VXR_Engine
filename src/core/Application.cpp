@@ -23,6 +23,9 @@
 #include "renderer/Mesh.h"
 #include "renderer/PushConstants.h"
 #include "renderer/RenderObject.h"
+#include "renderer/Scene.h"
+#include "renderer/RenderQueue.h"
+#include "renderer/Camera.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -42,6 +45,8 @@ Application::~Application()
     // Destroy in reverse order of creation
     delete m_Sync;
     delete m_TriangleMesh;
+    delete m_Camera;
+
     delete m_CommandBuffers;
     delete m_IndexBuffer;
     delete m_CommandPool;
@@ -85,6 +90,8 @@ Application::~Application()
     m_Instance = nullptr;
     m_Window = nullptr;
     m_TriangleMesh = nullptr;
+    m_Camera = nullptr;
+
 }
 
 void Application::Run()
@@ -177,6 +184,14 @@ void Application::Run()
         TRIANGLE_INDICES.size() * sizeof(uint32_t)
     );
 
+	// Camera setup
+    m_Camera = new Camera();
+    m_Camera->SetPosition({ 0.0f, 0.0f, 2.0f });
+    m_Camera->SetYawPitch(0.0f, 0.0f);
+    m_Camera->SetPerspective(glm::radians(60.0f), 0.1f, 100.0f);
+
+    m_LastTime = (float)glfwGetTime();
+
 
 	//  Mesh creation
     m_TriangleMesh = new Mesh(
@@ -190,12 +205,13 @@ void Application::Run()
     );
 
 	// Render objects creation
-    RenderObject tri{};
+    RenderObject& tri = m_Scene.CreateObject();
     tri.mesh = m_TriangleMesh;
     tri.pipeline = m_Pipeline;
-    tri.transform.position = { 0, 0, 0 };
 
-    m_RenderObjects.push_back(tri);
+    tri.transform.position = { 0.0f, 0.0f, 0.0f };
+    tri.transform.rotation = { 0.0f, 0.0f, 0.0f };
+    tri.transform.scale = { 1.0f, 1.0f, 1.0f };
 
     // 10) Command Pool + Command Buffers
     m_CommandPool = new VulkanCommandPool(m_Device);
@@ -264,32 +280,66 @@ void Application::DrawFrame()
         return;
     }
 
-	// Update uniform buffers
+	//// Update uniform buffers
+ //   uint32_t frame = m_Sync->GetCurrentFrame();
+
+ //   CameraUBO ubo{};
+
+ //   ubo.view = glm::lookAt(
+ //       glm::vec3(0.0f, 0.0f, 2.0f),
+ //       glm::vec3(0.0f, 0.0f, 0.0f),
+ //       glm::vec3(0.0f, 1.0f, 0.0f)
+ //   );
+
+ //   float aspect =
+ //       (float)m_Swapchain->GetExtent().width /
+ //       (float)m_Swapchain->GetExtent().height;
+
+ //   ubo.proj = glm::perspective(
+ //       glm::radians(60.0f),
+ //       aspect,
+ //       0.1f,
+ //       100.0f
+ //   );
+
+ //   // Vulkan clip-space correction
+ //   ubo.proj[1][1] *= -1;
+
+ //   m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
+
+    // --- Delta time
+    float now = (float)glfwGetTime();
+    float dt = now - m_LastTime;
+    m_LastTime = now;
+
+    // --- Basic camera movement (WASD + QE). Adjust speed as you like.
+    const float moveSpeed = 2.0f; // units/sec
+
+    // You need a GLFWwindow* here. Use whichever getter your Window class provides.
+    // Common patterns: m_Window->GetHandle() or m_Window->GetGLFWwindow()
+    GLFWwindow* wnd = m_Window->GetHandle();
+
+    if (glfwGetKey(wnd, GLFW_KEY_W) == GLFW_PRESS) m_Camera->MoveForward(moveSpeed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_S) == GLFW_PRESS) m_Camera->MoveForward(-moveSpeed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_D) == GLFW_PRESS) m_Camera->MoveRight(moveSpeed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_A) == GLFW_PRESS) m_Camera->MoveRight(-moveSpeed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_E) == GLFW_PRESS) m_Camera->MoveUp(moveSpeed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_Q) == GLFW_PRESS) m_Camera->MoveUp(-moveSpeed * dt);
+
+    // --- Update uniform buffer (per-frame)
     uint32_t frame = m_Sync->GetCurrentFrame();
 
     CameraUBO ubo{};
-
-    ubo.view = glm::lookAt(
-        glm::vec3(0.0f, 0.0f, 2.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
+    ubo.view = m_Camera->GetView();
 
     float aspect =
         (float)m_Swapchain->GetExtent().width /
         (float)m_Swapchain->GetExtent().height;
 
-    ubo.proj = glm::perspective(
-        glm::radians(60.0f),
-        aspect,
-        0.1f,
-        100.0f
-    );
-
-    // Vulkan clip-space correction
-    ubo.proj[1][1] *= -1;
+    ubo.proj = m_Camera->GetProjection(aspect);
 
     m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
+
 
 
     // 3) Record this image's command buffer
@@ -340,30 +390,38 @@ void Application::DrawFrame()
 
 
 	// draw meshes
+    RenderQueue renderQueue;
+    renderQueue.Clear();
 
-    for (const RenderObject& obj : m_RenderObjects)
+    for (const RenderObject& obj : m_Scene.GetObjects())
     {
-        // Bind pipeline
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->GetHandle());
+        renderQueue.Submit(obj);
+    }
 
-        // Push constants (model matrix)
+    for (const RenderCommand& rc : renderQueue.GetCommands())
+    {
+        vkCmdBindPipeline(
+            cmd,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            rc.pipeline->GetHandle()
+        );
+
         PushConstants pc{};
-        pc.model = glm::rotate(glm::mat4(1.0f),
-            (float)glfwGetTime(),
-            glm::vec3(0, 0, 1));
-        //pc.tint = glm::vec4(1, 1, 1, 1); // white (try different colors!)
+        pc.model = rc.model; 
 
         vkCmdPushConstants(
             cmd,
-            m_Pipeline->GetLayout(),
+            rc.pipeline->GetLayout(),
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             0,
             sizeof(PushConstants),
             &pc
         );
 
-        obj.mesh->Draw(cmd);
-	}
+        rc.mesh->Draw(cmd);
+    }
+
+
 
 
     vkCmdEndRenderPass(cmd);
