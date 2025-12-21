@@ -27,11 +27,16 @@ find_package(glfw3 CONFIG REQUIRED)
 # --------------------------------
 find_package(glm CONFIG REQUIRED)
 
+# --------------------------------
+# Assimp (model loading library)
+# --------------------------------
+find_package(assimp CONFIG REQUIRED)
+
 
 # --------------------------------
 # Engine executable
 # --------------------------------
-add_executable(VXR_Engine ${ENGINE_SOURCES})
+add_executable(VXR_Engine ${ENGINE_SOURCES} "src/asset/ModelLoader.h" "src/asset/ModelLoader.cpp" "src/renderer/Vertex3D.h")
 
 # --------------------------------
 # Link libraries
@@ -41,6 +46,7 @@ target_link_libraries(VXR_Engine
         Vulkan::Vulkan
         glfw
         glm::glm
+        assimp::assimp
 )
 
 # --------------------------------

@@ -1,13 +1,10 @@
 #version 450
 
-layout(location = 0) in vec3 fragColor;
+layout(location = 0) in vec3 vNormal;
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform Push {
-    mat4 model;
-    //vec4 tint;
-} pc;
-
-void main() {
-    outColor = vec4(fragColor, 1.0);
+void main()
+{
+    vec3 n = normalize(vNormal);
+    outColor = vec4(n * 0.5 + 0.5, 1.0);
 }

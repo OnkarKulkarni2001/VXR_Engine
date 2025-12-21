@@ -8,6 +8,8 @@ public:
     RenderObject& CreateObject();
     const std::vector<RenderObject>& GetObjects() const;
 
+    void Clear();
+
 private:
     std::vector<RenderObject> m_Objects;
 };
