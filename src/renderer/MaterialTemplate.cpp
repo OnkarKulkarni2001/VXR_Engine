@@ -38,7 +38,7 @@ MaterialTemplate::MaterialTemplate(
     // Pipeline uses set0 + set1
     std::vector<VkDescriptorSetLayout> setLayouts = { globalSetLayout, m_MaterialSetLayout };
 
-    m_Pipeline = new VulkanPipeline(device, swapchain, renderPass, setLayouts, vertSpv, fragSpv);
+    m_Pipeline = new VulkanPipeline(device, swapchain, renderPass, /*setLayouts*/globalSetLayout, vertSpv, fragSpv);
 }
 
 MaterialTemplate::~MaterialTemplate()

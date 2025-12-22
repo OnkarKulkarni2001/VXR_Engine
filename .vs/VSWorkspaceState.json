@@ -6,14 +6,13 @@
   },
   "ExpandedNodes": [
     "",
+    "\\out",
+    "\\out\\build",
+    "\\shaders",
     "\\src",
-    "\\src\\asset",
-    "\\src\\core",
-    "\\src\\input",
     "\\src\\renderer",
-    "\\src\\renderer\\pipeline",
     "\\src\\renderer\\shaders"
   ],
-  "SelectedNode": "\\src\\renderer\\Scene.cpp",
+  "SelectedNode": "\\CMakeLists.txt",
   "PreviewInSolutionExplorer": false
 }

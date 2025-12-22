@@ -114,14 +114,11 @@ void Application::Shutdown()
     m_RenderObjects.clear();  // safe
     m_OwnedMeshes.clear();    // 🔥 MOST IMPORTANT FIX
 
-    // Old demo mesh path (temporary, keep until removed)
-    delete m_TriangleMesh;
-    m_TriangleMesh = nullptr;
-
-    delete m_VertexBuffer;
-    delete m_IndexBuffer;
-    m_VertexBuffer = nullptr;
-    m_IndexBuffer = nullptr;
+    // 2. Materials (descriptor pools + layouts)
+    delete m_MaterialTemplate;
+    delete m_MaterialPool;
+    m_MaterialTemplate = nullptr;
+    m_MaterialPool = nullptr;
 
     // 3️⃣ Destroy per-frame + draw infrastructure
     delete m_Sync;
@@ -242,20 +239,27 @@ void Application::Run()
         m_MSAAColor
     );
 
-	// Pipeline set layouts
-    std::vector<VkDescriptorSetLayout> pipelineSetLayouts = {
-        m_Descriptors->GetLayout() // set = 0
+
+
+    // Pipeline layouts (ONLY set = 0 for now)
+    std::vector<VkDescriptorSetLayout> layouts = {
+        m_Descriptors->GetLayout() // set = 0 (Camera UBO)
     };
 
-    // 8) Pipeline (triangle shaders)
+    // Create pipeline (use unlit3d shaders, set0 only)
     m_Pipeline = new VulkanPipeline(
         m_Device,
         m_Swapchain,
         m_RenderPass,
-		pipelineSetLayouts,
+        //layouts,
+        m_Descriptors->GetLayout(),
         "shaders/triangle.vert.spv",
         "shaders/triangle.frag.spv"
     );
+
+    // TEMP: disable materials until textures/samplers are implemented
+    m_MaterialTemplate = nullptr;
+    m_MaterialPool = nullptr;
 
 
     // Disable cursor for camera movement
@@ -293,7 +297,8 @@ void Application::Run()
     {
         RenderObject& obj = m_Scene.CreateObject();
         obj.mesh = mesh.get();
-		obj.material = nullptr; // TODO: assign material
+		obj.pipeline = m_Pipeline;
+		//obj.material = nullptr; // TODO: assign material
         obj.transform.position = { 0.0f, 0.0f, 0.0f };
 
         m_OwnedMeshes.push_back(std::move(mesh));
@@ -386,6 +391,7 @@ void Application::DrawFrame()
         (float)m_Swapchain->GetExtent().height;
 
     ubo.proj = m_Camera->GetProjection(aspect);
+	ubo.proj[1][1] *= -1; // Vulkan clip correction
 
     m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
 
@@ -408,9 +414,11 @@ void Application::DrawFrame()
     // Render pass begin
     VkExtent2D extent = m_Swapchain->GetExtent();
 
-    std::array<VkClearValue, 2> clears{};
-    clears[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
-    clears[1].depthStencil = { 1.0f, 0 };
+    std::array<VkClearValue, 3> clears{};
+    clears[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } }; // MSAA color attachment
+    clears[1].depthStencil = { 1.0f, 0 };             // depth
+    clears[2].color = { { 0.1f, 0.1f, 0.1f, 1.0f } }; // resolve attachment (often required)
+
 
     VkRenderPassBeginInfo rpBegin{};
     rpBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -422,6 +430,20 @@ void Application::DrawFrame()
     rpBegin.pClearValues = clears.data();
 
     vkCmdBeginRenderPass(cmd, &rpBegin, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)extent.width;
+    viewport.height = (float)extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = { 0, 0 };
+    scissor.extent = extent;
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 
 
 	// draw meshes
@@ -444,18 +466,14 @@ void Application::DrawFrame()
         // Set 0 (global/per-frame)
         VkDescriptorSet globalSet0 = m_Descriptors->GetSet(frame);
 
-        // Set 1 (material) 
-        VkDescriptorSet materialSet1 = rc.materialSet; 
-
-        VkDescriptorSet sets[] = { globalSet0, materialSet1 };
 
         vkCmdBindDescriptorSets(
             cmd,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             rc.pipeline->GetLayout(),   // IMPORTANT: match the currently bound pipeline layout
             0,
-            2,
-            sets,
+            1,
+            &globalSet0,
             0,
             nullptr
         );

@@ -12,7 +12,7 @@ struct RenderCommand
     Mesh* mesh = nullptr;
     VulkanPipeline* pipeline = nullptr;
     glm::mat4 model;
-    VkDescriptorSet materialSet;
+    //VkDescriptorSet materialSet = VK_NULL_HANDLE;
 };
 
 class RenderQueue
