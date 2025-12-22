@@ -61,7 +61,6 @@ target_include_directories(VXR_Engine
 # Shader compilation (GLSL → SPIR-V)
 # --------------------------------
 
-# Find glslc
 find_program(GLSLC_EXECUTABLE
     NAMES glslc
     HINTS
@@ -70,11 +69,14 @@ find_program(GLSLC_EXECUTABLE
 )
 
 if (NOT GLSLC_EXECUTABLE)
-    message(FATAL_ERROR "glslc not found. Make sure Vulkan SDK is installed and VULKAN_SDK is set.")
+    message(FATAL_ERROR "glslc not found. Install Vulkan SDK and set VULKAN_SDK.")
 endif()
 
+# Source shaders
 set(SHADER_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/renderer/shaders)
-set(SHADER_BINARY_DIR ${CMAKE_BINARY_DIR}/shaders)
+
+# Output shaders (PROJECT ROOT /shaders)
+set(SHADER_BINARY_DIR ${PROJECT_SOURCE_DIR}/shaders)
 
 file(GLOB SHADER_SOURCES
     ${SHADER_SOURCE_DIR}/*.vert
@@ -91,10 +93,11 @@ foreach(SHADER ${SHADER_SOURCES})
         OUTPUT ${SPIRV_FILE}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
         COMMAND ${GLSLC_EXECUTABLE}
-                --target-env=vulkan1.3
-                ${SHADER}
-                -o ${SPIRV_FILE}
+            --target-env=vulkan1.3
+            ${SHADER}
+            -o ${SPIRV_FILE}
         DEPENDS ${SHADER}
+        VERBATIM
         COMMENT "Compiling shader ${FILE_NAME}"
     )
 

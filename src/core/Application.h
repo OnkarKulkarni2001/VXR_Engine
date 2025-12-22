@@ -1,6 +1,8 @@
 #pragma once
 
 #include "renderer/Scene.h"
+#include "renderer/MaterialTemplate.h"
+#include "renderer/VulkanMaterialDescriptors.h"
 
 #include "Window.h"
 #include <vector>
@@ -25,6 +27,7 @@ class Mesh;
 class RenderObject;
 class Camera;
 class CameraController;
+class MaterialInstance;
 
 class Application {
 public:
@@ -66,6 +69,10 @@ private:
 
     Camera* m_Camera = nullptr;
     CameraController* m_CameraController = nullptr;
+
+	MaterialTemplate* m_MaterialTemplate = nullptr;
+    MaterialInstance* m_DefaultMaterial = nullptr;
+	VulkanMaterialDescriptors* m_MaterialPool = nullptr;
 
     float   m_LastTime = 0.0f;
 
