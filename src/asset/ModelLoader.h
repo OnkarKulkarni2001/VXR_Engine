@@ -7,13 +7,21 @@
 
 class VulkanDevice;
 class Mesh;
+class MaterialTemplate;
+class VulkanMaterialDescriptors;
+class VulkanTexture2D;
 
+struct LoadedMesh
+{
+    std::unique_ptr<Mesh> mesh;
+    std::string albedoPath;
+    std::string normalPath;
+};
 
 class ModelLoader
 {
 public:
-    // Loads a model file and returns GPU-ready meshes
-    static std::vector<std::unique_ptr<Mesh>> LoadStaticModel(
+    static std::vector<LoadedMesh> LoadStaticModel(
         VulkanDevice* device,
         const std::string& path
     );

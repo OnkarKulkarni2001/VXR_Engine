@@ -28,6 +28,7 @@ class RenderObject;
 class Camera;
 class CameraController;
 class MaterialInstance;
+class VulkanTexture2D;
 
 class Application {
 public:
@@ -71,8 +72,11 @@ private:
     CameraController* m_CameraController = nullptr;
 
 	MaterialTemplate* m_MaterialTemplate = nullptr;
-    MaterialInstance* m_DefaultMaterial = nullptr;
 	VulkanMaterialDescriptors* m_MaterialPool = nullptr;
+
+    VulkanTexture2D* m_DefaultAlbedo = nullptr;
+    VulkanTexture2D* m_DefaultNormal = nullptr;
+    MaterialInstance* m_DefaultMaterial = nullptr;
 
     float   m_LastTime = 0.0f;
 

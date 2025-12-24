@@ -11,6 +11,9 @@ public:
 
     VkCommandPool GetHandle() const { return m_CommandPool; }
 
+    VkCommandBuffer BeginSingleTimeCommands();
+    void EndSingleTimeCommands(VkCommandBuffer cmd);
+
 private:
     VulkanDevice* m_Device = nullptr;
     VkCommandPool m_CommandPool = VK_NULL_HANDLE;

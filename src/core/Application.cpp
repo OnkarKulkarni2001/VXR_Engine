@@ -28,6 +28,8 @@
 #include "renderer/Camera.h"
 #include "input/CameraController.h"
 #include "asset/ModelLoader.h"
+#include "renderer/VulkanTexture2D.h"
+#include "renderer/MaterialInstance.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
@@ -113,6 +115,15 @@ void Application::Shutdown()
     m_Scene.Clear();          // if implemented
     m_RenderObjects.clear();  // safe
     m_OwnedMeshes.clear();    // 🔥 MOST IMPORTANT FIX
+
+    delete m_DefaultMaterial;
+    delete m_DefaultAlbedo;
+    delete m_DefaultNormal;
+
+    m_DefaultMaterial = nullptr;
+    m_DefaultAlbedo = nullptr;
+    m_DefaultNormal = nullptr;
+
 
     // 2. Materials (descriptor pools + layouts)
     delete m_MaterialTemplate;
@@ -240,6 +251,37 @@ void Application::Run()
     );
 
 
+    // 10) Command Pool + Command Buffers
+    m_CommandPool = new VulkanCommandPool(m_Device);
+
+
+
+    m_MaterialTemplate = new MaterialTemplate(
+        m_Device,
+        m_Swapchain,
+        m_RenderPass,
+        m_Descriptors->GetLayout(),
+        "shaders/unlit3d.vert.spv",
+        "shaders/unlit3d.frag.spv"
+    );
+
+    m_MaterialPool = new VulkanMaterialDescriptors(m_Device, 128);
+
+    // Default textures (1x1)
+    const uint8_t white[4] = { 255,255,255,255 };
+    const uint8_t flatN[4] = { 128,128,255,255 };
+
+    m_DefaultAlbedo = new VulkanTexture2D(m_Device, m_CommandPool, white, 1, 1);
+    m_DefaultNormal = new VulkanTexture2D(m_Device, m_CommandPool, flatN, 1, 1);
+
+    m_DefaultMaterial = new MaterialInstance(
+        m_Device,
+        m_MaterialPool,
+        m_MaterialTemplate,
+        m_DefaultAlbedo->GetView(), m_DefaultAlbedo->GetSampler(),
+        m_DefaultNormal->GetView(), m_DefaultNormal->GetSampler()
+    );
+
 
     // Pipeline layouts (ONLY set = 0 for now)
     std::vector<VkDescriptorSetLayout> layouts = {
@@ -251,15 +293,11 @@ void Application::Run()
         m_Device,
         m_Swapchain,
         m_RenderPass,
-        //layouts,
-        m_Descriptors->GetLayout(),
-        "shaders/triangle.vert.spv",
-        "shaders/triangle.frag.spv"
+        layouts,
+        //m_Descriptors->GetLayout(),
+        "shaders/unlit3d.vert.spv",
+        "shaders/unlit3d.frag.spv"
     );
-
-    // TEMP: disable materials until textures/samplers are implemented
-    m_MaterialTemplate = nullptr;
-    m_MaterialPool = nullptr;
 
 
     // Disable cursor for camera movement
@@ -288,25 +326,33 @@ void Application::Run()
     //    VkDeviceSize(TRIANGLE_INDICES.size() * sizeof(TRIANGLE_INDICES[0])),
     //    (uint32_t)TRIANGLE_INDICES.size()
     //);
-    auto meshes = ModelLoader::LoadStaticModel(
+    auto loadedMeshes = ModelLoader::LoadStaticModel(
         m_Device,
-        "G:/VXR_Engine/assets/monkey.glb" // or .fbx / .obj
+        "G:/VXR_Engine/assets/monkey.glb"
     );
 
-    for (auto& mesh : meshes)
+    for (auto& lm : loadedMeshes)
     {
-        RenderObject& obj = m_Scene.CreateObject();
-        obj.mesh = mesh.get();
-		obj.pipeline = m_Pipeline;
-		//obj.material = nullptr; // TODO: assign material
-        obj.transform.position = { 0.0f, 0.0f, 0.0f };
+        VulkanTexture2D* albedo = m_DefaultAlbedo;
+        VulkanTexture2D* normal = m_DefaultNormal;
 
-        m_OwnedMeshes.push_back(std::move(mesh));
+
+        MaterialInstance* mat = new MaterialInstance(
+            m_Device,
+            m_MaterialPool,
+            m_MaterialTemplate,
+            albedo->GetView(), albedo->GetSampler(),
+            normal->GetView(), normal->GetSampler()
+        );
+
+        RenderObject& obj = m_Scene.CreateObject();
+        obj.mesh = lm.mesh.get();
+        obj.material = mat;
+        obj.pipeline = mat->GetPipeline();
+
+        m_OwnedMeshes.push_back(std::move(lm.mesh));
     }
 
-
-    // 10) Command Pool + Command Buffers
-    m_CommandPool = new VulkanCommandPool(m_Device);
 
     m_CommandBuffers = new VulkanCommandBuffers(
         m_Device,
@@ -315,6 +361,7 @@ void Application::Run()
         m_RenderPass,
         m_Framebuffers
     );
+    
 
     // 11) Sync
     m_Sync = new VulkanSync(
@@ -463,21 +510,24 @@ void Application::DrawFrame()
             rc.pipeline->GetHandle()
         );
 
-        // Set 0 (global/per-frame)
+        //// Set 0 (global/per-frame)
         VkDescriptorSet globalSet0 = m_Descriptors->GetSet(frame);
+        VkDescriptorSet materialSet1 = rc.materialSet;
 
+        VkDescriptorSet sets[] = { globalSet0, materialSet1 };
 
         vkCmdBindDescriptorSets(
             cmd,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             rc.pipeline->GetLayout(),   // IMPORTANT: match the currently bound pipeline layout
             0,
-            1,
-            &globalSet0,
+            2,
+            sets,
             0,
             nullptr
         );
 
+        
 
         PushConstants pc{};
         pc.model = rc.model; 

@@ -5,6 +5,7 @@
 
 class Mesh;
 class VulkanPipeline;
+class MaterialInstance;
 struct RenderObject;
 
 struct RenderCommand
@@ -12,7 +13,8 @@ struct RenderCommand
     Mesh* mesh = nullptr;
     VulkanPipeline* pipeline = nullptr;
     glm::mat4 model;
-    //VkDescriptorSet materialSet = VK_NULL_HANDLE;
+	MaterialInstance* material = nullptr;
+    VkDescriptorSet materialSet = VK_NULL_HANDLE;
 };
 
 class RenderQueue
