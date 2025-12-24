@@ -12,47 +12,42 @@
 #include <vector>
 #include <cstdint>
 
+static std::string GetTexturePath(
+    const aiMaterial* mat,
+    aiTextureType type,
+    const std::string& baseDir)
+{
+    if (!mat) return "";
+
+    aiString str;
+    if (mat->GetTexture(type, 0, &str) == AI_SUCCESS)
+        return baseDir + "/" + str.C_Str();
+
+    return "";
+}
+
 
 static void ProcessMesh(
     aiMesh* mesh,
+    const aiScene* scene,
     VulkanDevice* device,
-    std::vector<std::unique_ptr<Mesh>>& outMeshes
+    const std::string& baseDir,
+    std::vector<LoadedMesh>& out
 )
 {
     std::vector<Vertex3D> vertices;
     std::vector<uint32_t> indices;
 
-    vertices.reserve(mesh->mNumVertices);
-
     for (uint32_t i = 0; i < mesh->mNumVertices; i++)
     {
         Vertex3D v{};
+        v.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 
-        // Position
-        v.position = {
-            mesh->mVertices[i].x,
-            mesh->mVertices[i].y,
-            mesh->mVertices[i].z
-        };
-
-        // Normal (may not exist)
         if (mesh->HasNormals())
-        {
-            v.normal = {
-                mesh->mNormals[i].x,
-                mesh->mNormals[i].y,
-                mesh->mNormals[i].z
-            };
-        }
+            v.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
-        // UV (channel 0)
         if (mesh->mTextureCoords[0])
-        {
-            v.uv = {
-                mesh->mTextureCoords[0][i].x,
-                mesh->mTextureCoords[0][i].y
-            };
-        }
+            v.uv = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
 
         vertices.push_back(v);
     }
@@ -64,21 +59,27 @@ static void ProcessMesh(
             indices.push_back(face.mIndices[j]);
     }
 
-    outMeshes.push_back(
-        std::make_unique<Mesh>(
-            device,
-            vertices.data(),
-            sizeof(Vertex3D) * vertices.size(),
-            sizeof(Vertex3D),
-            indices.data(),
-            sizeof(uint32_t) * indices.size(),
-            static_cast<uint32_t>(indices.size())
-        )
+    LoadedMesh lm{};
+    lm.mesh = std::make_unique<Mesh>(
+        device,
+        vertices.data(),
+        sizeof(Vertex3D) * vertices.size(),
+        sizeof(Vertex3D),
+        indices.data(),
+        sizeof(uint32_t) * indices.size(),
+        (uint32_t)indices.size()
     );
 
+    aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
+
+    lm.albedoPath = GetTexturePath(mat, aiTextureType_DIFFUSE, baseDir);
+    lm.normalPath = GetTexturePath(mat, aiTextureType_NORMALS, baseDir);
+
+    out.push_back(std::move(lm));
 }
 
-std::vector<std::unique_ptr<Mesh>> ModelLoader::LoadStaticModel(
+
+std::vector<LoadedMesh> ModelLoader::LoadStaticModel(
     VulkanDevice* device,
     const std::string& path
 )
@@ -94,13 +95,15 @@ std::vector<std::unique_ptr<Mesh>> ModelLoader::LoadStaticModel(
     );
 
     if (!scene || !scene->mRootNode)
-        throw std::runtime_error("Assimp failed to load model: " + path);
+        throw std::runtime_error("Failed to load model: " + path);
 
-    std::vector<std::unique_ptr<Mesh>> meshes;
+    std::string baseDir = path.substr(0, path.find_last_of("/\\"));
+
+    std::vector<LoadedMesh> meshes;
 
     for (uint32_t i = 0; i < scene->mNumMeshes; i++)
     {
-        ProcessMesh(scene->mMeshes[i], device, meshes);
+        ProcessMesh(scene->mMeshes[i], scene, device, baseDir, meshes);
     }
 
     return meshes;

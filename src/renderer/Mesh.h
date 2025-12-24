@@ -6,6 +6,7 @@
 class VulkanDevice;
 class VulkanVertexBuffer;
 class VulkanIndexBuffer;
+class MaterialInstance;
 
 class Mesh
 {
@@ -24,6 +25,7 @@ public:
 
 public:
     glm::mat4 Model = glm::mat4(1.0f);
+    MaterialInstance* Material = nullptr;
 
 private:
     VulkanDevice* m_Device = nullptr;

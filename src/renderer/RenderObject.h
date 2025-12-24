@@ -11,6 +11,6 @@ struct RenderObject
     Transform transform;
     Mesh* mesh = nullptr;
 
-    //MaterialInstance* material = nullptr;
+    MaterialInstance* material = nullptr;
 	VulkanPipeline* pipeline = nullptr;
 };
