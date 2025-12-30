@@ -8,6 +8,18 @@ CMakeFiles/
 /*.cmake
 cmake_install.cmake
 
+# Engine assets (local only)
+assets/*.fbx
+assets/*.glb
+assets/*.png
+assets/*.jpg
+assets/*.tga
+assets/**/*.fbx
+assets/**/*.glb
+assets/**/*.png
+assets/**/*.jpg
+assets/**/*.tga
+
 ### --- Visual Studio ---
 .vs/
 /*.sln
