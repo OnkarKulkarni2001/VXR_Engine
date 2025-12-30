@@ -44,6 +44,11 @@ public:
 public:
     std::vector<RenderObject> m_RenderObjects;
     std::vector<std::unique_ptr<Mesh>> m_OwnedMeshes;
+
+    std::vector<VulkanTexture2D*> m_RuntimeTextures;     // textures created with new
+    std::vector<MaterialInstance*> m_RuntimeMaterials;   // materials created with new
+
+
     Scene m_Scene;
 
 private:
@@ -57,6 +62,10 @@ private:
     VulkanRenderPass* m_RenderPass = nullptr;
     VulkanFramebuffers* m_Framebuffers = nullptr;
     VulkanCommandPool* m_CommandPool = nullptr;
+
+    VulkanCommandPool* m_GraphicsCmdPool = nullptr;
+    VulkanCommandPool* m_TransferCmdPool = nullptr;
+
     VulkanCommandBuffers* m_CommandBuffers = nullptr;
     VulkanSync* m_Sync = nullptr;
     VkSurfaceKHR          m_Surface = VK_NULL_HANDLE;

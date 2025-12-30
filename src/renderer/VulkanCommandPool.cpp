@@ -2,27 +2,24 @@
 #include "VulkanDevice.h"
 #include "../core/Logger.h"
 
-VulkanCommandPool::VulkanCommandPool(VulkanDevice* device)
-    : m_Device(device)
+VulkanCommandPool::VulkanCommandPool(VulkanDevice* device, CommandPoolType type)
+    : m_Device(device), m_Type(type)
 {
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = m_Device->GetGraphicsQueueFamilyIndex();
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    VkCommandPoolCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    info.queueFamilyIndex = m_Device->GetGraphicsQueueFamilyIndex();
+    info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(
         m_Device->GetHandle(),
-        &poolInfo,
+        &info,
         nullptr,
         &m_CommandPool) != VK_SUCCESS)
     {
-        LOG_ERROR("Failed to create command pool!");
-    }
-    else
-    {
-        LOG_INFO("Command pool created.");
+        throw std::runtime_error("Failed to create command pool");
     }
 }
+
 
 VulkanCommandPool::~VulkanCommandPool()
 {

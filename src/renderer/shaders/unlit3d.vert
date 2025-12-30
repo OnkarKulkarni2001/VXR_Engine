@@ -13,7 +13,10 @@ layout(push_constant) uniform Push {
     mat4 model;
 } pc;
 
+layout(location = 0) out vec2 vUV;
+
 void main()
 {
+    vUV = inUV;
     gl_Position = ubo.proj * ubo.view * pc.model * vec4(inPos, 1.0);
 }

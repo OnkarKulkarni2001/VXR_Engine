@@ -15,7 +15,8 @@ public:
         VulkanDevice* device,
         VulkanSwapchain* swapchain,
         VulkanRenderPass* renderPass,
-        VkDescriptorSetLayout globalSetLayout, // set 0
+        //VkDescriptorSetLayout globalSetLayout, // set 0
+        std::vector<VkDescriptorSetLayout> layouts, 
         const std::string& vertSpv,
         const std::string& fragSpv);
 

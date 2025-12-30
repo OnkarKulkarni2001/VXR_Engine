@@ -1,11 +1,14 @@
-#include "VulkanMaterialDescriptors.h"
+﻿#include "VulkanMaterialDescriptors.h"
 #include "VulkanDevice.h"
+#include "VulkanCheck.h"
 #include "../core/Logger.h"
 
 VulkanMaterialDescriptors::VulkanMaterialDescriptors(VulkanDevice* device, uint32_t maxMaterials)
     : m_Device(device)
 {
     VkDevice vkDevice = m_Device->GetHandle();
+
+	CreateLayout();
 
     // We need COMBINED_IMAGE_SAMPLER descriptors for:
     // binding 0 = albedo, binding 1 = normal
@@ -28,7 +31,44 @@ VulkanMaterialDescriptors::VulkanMaterialDescriptors(VulkanDevice* device, uint3
 
 VulkanMaterialDescriptors::~VulkanMaterialDescriptors()
 {
-    VkDevice vkDevice = m_Device->GetHandle();
-    if (m_Pool)
-        vkDestroyDescriptorPool(vkDevice, m_Pool, nullptr);
+    if (!m_Device) return;
+    VkDevice device = m_Device->GetHandle();
+
+    if (m_Layout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(device, m_Layout, nullptr);
+        m_Layout = VK_NULL_HANDLE;
+    }
+
+    if (m_Pool != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorPool(device, m_Pool, nullptr);
+        m_Pool = VK_NULL_HANDLE;
+    }
+}
+
+void VulkanMaterialDescriptors::CreateLayout()
+{
+    VkDevice device = m_Device->GetHandle();
+
+    VkDescriptorSetLayoutBinding bindings[2]{};
+
+    // binding 0 → albedo
+    bindings[0].binding = 0;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].descriptorCount = 1;
+    bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    // binding 1 → normal
+    bindings[1].binding = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[1].descriptorCount = 1;
+    bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    info.bindingCount = 2;
+    info.pBindings = bindings;
+
+    VK_CHECK(vkCreateDescriptorSetLayout(device, &info, nullptr, &m_Layout));
 }

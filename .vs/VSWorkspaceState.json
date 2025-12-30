@@ -8,10 +8,14 @@
     "",
     "\\shaders",
     "\\src",
+    "\\src\\asset",
     "\\src\\core",
+    "\\src\\input",
     "\\src\\renderer",
     "\\src\\renderer\\pipeline",
-    "\\src\\renderer\\shaders"
+    "\\src\\renderer\\shaders",
+    "\\src\\third_party"
   ],
+  "SelectedNode": "\\src\\renderer\\pipeline\\VulkanPipeline.cpp",
   "PreviewInSolutionExplorer": false
 }

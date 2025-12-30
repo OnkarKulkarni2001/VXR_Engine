@@ -2,6 +2,8 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 
+#include <filesystem>
+
 class VulkanDevice;
 class VulkanCommandPool;
 
@@ -14,6 +16,11 @@ public:
         const void* rgbaPixels,
         uint32_t width,
         uint32_t height);
+
+    VulkanTexture2D(
+        VulkanDevice* device,
+        VulkanCommandPool* cmdPool,
+        const std::string& filePath);
 
     ~VulkanTexture2D();
 

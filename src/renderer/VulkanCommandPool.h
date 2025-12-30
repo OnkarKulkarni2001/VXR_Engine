@@ -3,10 +3,16 @@
 
 class VulkanDevice;
 
+enum class CommandPoolType
+{
+    Graphics,
+    Transfer
+};
+
 class VulkanCommandPool
 {
 public:
-    VulkanCommandPool(VulkanDevice* device);
+    VulkanCommandPool(VulkanDevice* device, CommandPoolType type);
     ~VulkanCommandPool();
 
     VkCommandPool GetHandle() const { return m_CommandPool; }
@@ -17,4 +23,5 @@ public:
 private:
     VulkanDevice* m_Device = nullptr;
     VkCommandPool m_CommandPool = VK_NULL_HANDLE;
+    CommandPoolType m_Type;
 };

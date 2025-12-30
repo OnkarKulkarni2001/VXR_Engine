@@ -15,7 +15,7 @@ void RenderQueue::Submit(const RenderObject& obj)
 
     RenderCommand cmd{};
     cmd.mesh = obj.mesh;
-    cmd.pipeline = obj.material->GetPipeline();
+    cmd.pipeline = obj.pipeline;
     cmd.materialSet = obj.material->GetDescriptorSet();
     cmd.model = obj.transform.ToMatrix();
 

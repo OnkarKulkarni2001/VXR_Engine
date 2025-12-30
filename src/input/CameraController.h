@@ -10,6 +10,8 @@ public:
 
     void Update(GLFWwindow* window, float dt);
 
+    void OnScroll(double yOffset);
+
     void SetMouseSensitivity(float s) { m_MouseSensitivity = s; }
     void SetMoveSpeed(float s) { m_MoveSpeed = s; }
 

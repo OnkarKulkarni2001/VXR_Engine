@@ -1,4 +1,4 @@
-#include "ModelLoader.h"
+﻿#include "ModelLoader.h"
 
 #include "renderer/Mesh.h"
 #include "renderer/Vertex3D.h"
@@ -8,9 +8,25 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <filesystem>
 #include <stdexcept>
 #include <vector>
 #include <cstdint>
+
+static std::string FindTextureRecursive(
+    const std::filesystem::path& root,
+    const std::filesystem::path& filename)
+{
+    for (auto& p : std::filesystem::recursive_directory_iterator(root))
+    {
+        if (!p.is_regular_file()) continue;
+
+        if (p.path().filename() == filename)
+            return p.path().string();
+    }
+    return "";
+}
+
 
 static std::string GetTexturePath(
     const aiMaterial* mat,
@@ -20,11 +36,30 @@ static std::string GetTexturePath(
     if (!mat) return "";
 
     aiString str;
-    if (mat->GetTexture(type, 0, &str) == AI_SUCCESS)
-        return baseDir + "/" + str.C_Str();
+    if (mat->GetTexture(type, 0, &str) != AI_SUCCESS)
+        return "";
 
+    std::filesystem::path texPath(str.C_Str());
+    std::filesystem::path modelDir(baseDir);
+
+    // Strip artist absolute paths
+    if (texPath.is_absolute())
+        texPath = texPath.filename();
+
+    // 1️ Try direct resolution
+    std::filesystem::path direct = modelDir / texPath;
+    if (std::filesystem::exists(direct))
+        return direct.lexically_normal().string();
+
+    // 2️ Fallback: search recursively (maps/, textures/, etc.)
+    std::string found = FindTextureRecursive(modelDir, texPath.filename());
+    if (!found.empty())
+        return found;
+
+    // 3️ Give up gracefully
     return "";
 }
+
 
 
 static void ProcessMesh(

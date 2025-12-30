@@ -114,7 +114,15 @@ void Application::Shutdown()
     // 2️⃣ Destroy scene + mesh ownership FIRST
     m_Scene.Clear();          // if implemented
     m_RenderObjects.clear();  // safe
-    m_OwnedMeshes.clear();    // 🔥 MOST IMPORTANT FIX
+    m_OwnedMeshes.clear();    
+
+    // Destroy runtime materials first (they reference textures via descriptor sets)
+    for (auto* m : m_RuntimeMaterials) delete m;
+    m_RuntimeMaterials.clear();
+
+    // Destroy runtime textures (destroys VkImage/VkView/VkSampler/VkMemory)
+    for (auto* t : m_RuntimeTextures) delete t;
+    m_RuntimeTextures.clear();
 
     delete m_DefaultMaterial;
     delete m_DefaultAlbedo;
@@ -131,22 +139,26 @@ void Application::Shutdown()
     m_MaterialTemplate = nullptr;
     m_MaterialPool = nullptr;
 
-    // 3️⃣ Destroy per-frame + draw infrastructure
+    // 3️ Destroy per-frame + draw infrastructure
     delete m_Sync;
     delete m_CommandBuffers;
     delete m_CommandPool;
+    delete m_GraphicsCmdPool;
+    delete m_TransferCmdPool;
 
     m_Sync = nullptr;
     m_CommandBuffers = nullptr;
     m_CommandPool = nullptr;
+    m_GraphicsCmdPool = nullptr;
+    m_TransferCmdPool = nullptr;
 
-    // 4️⃣ Descriptor + uniform systems
+    // 4️ Descriptor + uniform systems
     delete m_Descriptors;
     delete m_UniformBuffers;
     m_Descriptors = nullptr;
     m_UniformBuffers = nullptr;
 
-    // 5️⃣ Pipeline + render targets
+    // 5️ Pipeline + render targets
     delete m_Pipeline;
     delete m_Framebuffers;
     delete m_RenderPass;
@@ -161,17 +173,17 @@ void Application::Shutdown()
     m_DepthBuffer = nullptr;
     m_Swapchain = nullptr;
 
-    // 6️⃣ Camera & input
+    // 6️ Camera & input
     delete m_CameraController;
     delete m_Camera;
     m_CameraController = nullptr;
     m_Camera = nullptr;
 
-    // 7️⃣ Destroy device LAST
+    // 7️ Destroy device LAST
     delete m_Device;
     m_Device = nullptr;
 
-    // 8️⃣ Surface before instance
+    // 8️ Surface before instance
     if (m_Instance && m_Surface != VK_NULL_HANDLE)
     {
         vkDestroySurfaceKHR(m_Instance->GetHandle(), m_Surface, nullptr);
@@ -252,27 +264,34 @@ void Application::Run()
 
 
     // 10) Command Pool + Command Buffers
-    m_CommandPool = new VulkanCommandPool(m_Device);
+    m_GraphicsCmdPool = new VulkanCommandPool(m_Device, CommandPoolType::Graphics);
+    m_TransferCmdPool = new VulkanCommandPool(m_Device, CommandPoolType::Transfer);
 
 
+    m_MaterialPool = new VulkanMaterialDescriptors(m_Device, 128);
+
+    // Pipeline layouts (ONLY set = 0 for now)
+    std::vector<VkDescriptorSetLayout> layouts = {
+        m_Descriptors->GetLayout(), // set = 0 (Camera UBO)
+        m_MaterialPool->GetLayout()  // set = 1 (Material textures)
+    };
 
     m_MaterialTemplate = new MaterialTemplate(
         m_Device,
         m_Swapchain,
         m_RenderPass,
-        m_Descriptors->GetLayout(),
+        layouts,
         "shaders/unlit3d.vert.spv",
         "shaders/unlit3d.frag.spv"
     );
 
-    m_MaterialPool = new VulkanMaterialDescriptors(m_Device, 128);
 
     // Default textures (1x1)
     const uint8_t white[4] = { 255,255,255,255 };
     const uint8_t flatN[4] = { 128,128,255,255 };
 
-    m_DefaultAlbedo = new VulkanTexture2D(m_Device, m_CommandPool, white, 1, 1);
-    m_DefaultNormal = new VulkanTexture2D(m_Device, m_CommandPool, flatN, 1, 1);
+    m_DefaultAlbedo = new VulkanTexture2D(m_Device, m_GraphicsCmdPool, white, 1, 1);
+    m_DefaultNormal = new VulkanTexture2D(m_Device, m_GraphicsCmdPool, flatN, 1, 1);
 
     m_DefaultMaterial = new MaterialInstance(
         m_Device,
@@ -283,10 +302,7 @@ void Application::Run()
     );
 
 
-    // Pipeline layouts (ONLY set = 0 for now)
-    std::vector<VkDescriptorSetLayout> layouts = {
-        m_Descriptors->GetLayout() // set = 0 (Camera UBO)
-    };
+
 
     // Create pipeline (use unlit3d shaders, set0 only)
     m_Pipeline = new VulkanPipeline(
@@ -302,18 +318,30 @@ void Application::Run()
 
     // Disable cursor for camera movement
     GLFWwindow* wnd = m_Window->GetHandle();
+
+
     //glfwSetInputMode(wnd, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Camera setup
     m_Camera = new Camera();
     m_Camera->SetPosition({ 0.0f, 0.0f, 2.0f });
     m_Camera->SetYawPitch(0.0f, 0.0f);
-    m_Camera->SetPerspective(glm::radians(60.0f), 0.1f, 100.0f);
+    m_Camera->SetPerspective(glm::radians(60.0f), 0.1f, 10000.0f);
 
     m_LastTime = (float)glfwGetTime();
 
 	// Camera controller 
     m_CameraController = new CameraController(m_Camera);
+
+    glfwSetWindowUserPointer(wnd, m_CameraController);
+
+    glfwSetScrollCallback(wnd,
+        [](GLFWwindow* wnd, double, double yOffset)
+        {
+            auto* controller =
+                static_cast<CameraController*>(glfwGetWindowUserPointer(wnd));
+            controller->OnScroll(yOffset);
+        });
 
 
 	//  Mesh creation
@@ -328,13 +356,35 @@ void Application::Run()
     //);
     auto loadedMeshes = ModelLoader::LoadStaticModel(
         m_Device,
-        "G:/VXR_Engine/assets/monkey.glb"
+        //"C:/Users/onkar/Downloads/uploads_files_3053791_Matteuccia_Struthiopteris_FBX/Matteuccia_Struthiopteris_FBX/matteucia_struthiopteris_3.fbx"
+        //"C:/Users/onkar/Downloads/6e48z1kc7r40-bugatti/bugatti/bugatti.obj"
+        "G:/VXR_Engine/assets/selene.fbx"
+         //"C:/Users/onkar/Downloads/uploads_files_6647155_01_Street_Wear_Mesh_and_Textures/Skeleton_Meshes/FBX/bodyShapeAof2/Street_Wear_Combined_Mesh_A.fbx"
+         //"C:/Users/onkar/Downloads/uploads_files_642137_goku+Low+Poly(v1)(1)/goku real4armature.obj"
+        //"C:/Users/onkar/Downloads/wolf/WOLF.OBJ"
     );
 
     for (auto& lm : loadedMeshes)
     {
-        VulkanTexture2D* albedo = m_DefaultAlbedo;
-        VulkanTexture2D* normal = m_DefaultNormal;
+        VulkanTexture2D* albedo =
+            lm.albedoPath.empty()
+            ? m_DefaultAlbedo
+            : new VulkanTexture2D(m_Device, m_GraphicsCmdPool, lm.albedoPath );
+
+        if (!lm.albedoPath.empty())
+        {
+            m_RuntimeTextures.push_back(albedo);
+        }
+
+        VulkanTexture2D* normal =
+            lm.normalPath.empty()
+            ? m_DefaultNormal
+            : new VulkanTexture2D(m_Device, m_GraphicsCmdPool, lm.normalPath );
+
+        if (!lm.normalPath.empty())
+        {
+            m_RuntimeTextures.push_back(normal);
+        }
 
 
         MaterialInstance* mat = new MaterialInstance(
@@ -344,11 +394,12 @@ void Application::Run()
             albedo->GetView(), albedo->GetSampler(),
             normal->GetView(), normal->GetSampler()
         );
+		m_RuntimeMaterials.push_back(mat);
 
         RenderObject& obj = m_Scene.CreateObject();
         obj.mesh = lm.mesh.get();
         obj.material = mat;
-        obj.pipeline = mat->GetPipeline();
+        obj.pipeline = m_Pipeline;
 
         m_OwnedMeshes.push_back(std::move(lm.mesh));
     }
@@ -356,7 +407,7 @@ void Application::Run()
 
     m_CommandBuffers = new VulkanCommandBuffers(
         m_Device,
-        m_CommandPool,
+        m_GraphicsCmdPool,
         m_Swapchain,
         m_RenderPass,
         m_Framebuffers
@@ -438,7 +489,7 @@ void Application::DrawFrame()
         (float)m_Swapchain->GetExtent().height;
 
     ubo.proj = m_Camera->GetProjection(aspect);
-	ubo.proj[1][1] *= -1; // Vulkan clip correction
+	//ubo.proj[1][1] *= -1; // Vulkan clip correction
 
     m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
 

@@ -2,7 +2,10 @@
 #include "VulkanDevice.h"
 #include "VulkanCommandPool.h"
 #include "../core/Logger.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "third_party/stb_image.h"
 
+#include <fstream>
 #include <stdexcept>
 #include <cstring>
 
@@ -147,6 +150,53 @@ VulkanTexture2D::VulkanTexture2D(
     CreateSampler();
     LOG_INFO("VulkanTexture2D created.");
 }
+
+VulkanTexture2D::VulkanTexture2D(
+    VulkanDevice* device,
+    VulkanCommandPool* cmdPool,
+    const std::string& filePath)
+    : m_Device(device), m_CmdPool(cmdPool)
+{
+    int w, h, channels;
+
+    //stbi_uc* pixels = stbi_load(
+    //    filePath.c_str(),
+    //    &w, &h,
+    //    &channels,
+    //    STBI_rgb_alpha // force RGBA
+    //);
+    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+    if (!file)
+        throw std::runtime_error("Failed to open image file: " + filePath);
+
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<unsigned char> buffer(size);
+    file.read((char*)buffer.data(), size);
+
+    stbi_uc* pixels = stbi_load_from_memory(
+        buffer.data(),
+        (int)buffer.size(),
+        &w, &h,
+        &channels,
+        STBI_rgb_alpha
+    );
+
+
+    if (!pixels)
+        throw std::runtime_error("Failed to load texture: " + filePath);
+
+    CreateImage(w, h);
+    Upload(pixels, w, h);
+    CreateView();
+    CreateSampler();
+
+    stbi_image_free(pixels);
+
+    LOG_INFO(std::string("Loaded texture: ") + filePath);
+}
+
 
 VulkanTexture2D::~VulkanTexture2D()
 {
