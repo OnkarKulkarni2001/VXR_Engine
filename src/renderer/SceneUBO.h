@@ -2,10 +2,10 @@
 #include <glm/glm.hpp>
 #include "../lighting/SceneLighting.h"
 
-struct CameraUBO
+struct SceneUBO
 {
     glm::mat4 view;
-    glm::mat4 proj;
+    glm::mat4 projection;
 
     SceneLighting lighting;
 };

@@ -3,7 +3,7 @@
 #include "renderer/Scene.h"
 #include "renderer/MaterialTemplate.h"
 #include "renderer/VulkanMaterialDescriptors.h"
-
+#include "renderer/SceneUBO.h"
 #include "Window.h"
 #include <vector>
 #include <memory>
@@ -38,6 +38,10 @@ public:
     void Shutdown();
 
     void Run();
+
+    //void DrawFrame(CameraUBO* ubo);
+
+    //void DrawFrame(CameraUBO* ubo);
 
     void DrawFrame();
     
@@ -86,6 +90,8 @@ private:
     VulkanTexture2D* m_DefaultAlbedo = nullptr;
     VulkanTexture2D* m_DefaultNormal = nullptr;
     MaterialInstance* m_DefaultMaterial = nullptr;
+
+	SceneUBO m_SceneUBO = {};
 
     float   m_LastTime = 0.0f;
 

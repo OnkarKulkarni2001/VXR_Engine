@@ -31,6 +31,8 @@
 #include "renderer/VulkanTexture2D.h"
 #include "renderer/MaterialInstance.h"
 
+#include "lighting/LightFactory.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
 
@@ -311,8 +313,8 @@ void Application::Run()
         m_RenderPass,
         layouts,
         //m_Descriptors->GetLayout(),
-        "shaders/unlit3d.vert.spv",
-        "shaders/unlit3d.frag.spv"
+        "shaders/lighting.vert.spv",
+        "shaders/lighting.frag.spv"
     );
 
 
@@ -421,6 +423,15 @@ void Application::Run()
         static_cast<uint32_t>(m_Swapchain->GetImageViews().size())
     );
 
+	// Lighting UBO setup
+    m_SceneUBO.lighting.sun = MakeSunLight();
+
+    m_SceneUBO.lighting.pointLightCount = 1;
+    m_SceneUBO.lighting.pointLights[0] =
+        MakePointLight({ 0, 2, 0 }, { 1, 0.8f, 0.6f }, 10.0f, 2.0f);
+
+    m_SceneUBO.lighting.spotLightCount = 0;
+
     // Main loop
     while (!m_Window->ShouldClose())
     {
@@ -481,17 +492,29 @@ void Application::DrawFrame()
     // --- Update uniform buffer (per-frame)
     uint32_t frame = m_Sync->GetCurrentFrame();
 
-    CameraUBO ubo{};
-    ubo.view = m_Camera->GetView();
+ //   CameraUBO ubo{};
+
+ //   ubo.view = m_Camera->GetView();
+
+ //   float aspect =
+ //       (float)m_Swapchain->GetExtent().width /
+ //       (float)m_Swapchain->GetExtent().height;
+
+ //   ubo.proj = m_Camera->GetProjection(aspect);
+	////ubo.proj[1][1] *= -1; // Vulkan clip correction
+
+ //   m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
+
+	// Update scene UBO (lighting info)
+	m_SceneUBO.view = m_Camera->GetView();
 
     float aspect =
         (float)m_Swapchain->GetExtent().width /
-        (float)m_Swapchain->GetExtent().height;
+		(float)m_Swapchain->GetExtent().height;
 
-    ubo.proj = m_Camera->GetProjection(aspect);
-	//ubo.proj[1][1] *= -1; // Vulkan clip correction
+	m_SceneUBO.projection = m_Camera->GetProjection(aspect);
 
-    m_UniformBuffers->Update(frame, &ubo, sizeof(ubo));
+	m_UniformBuffers->Update(frame, &m_SceneUBO, sizeof(m_SceneUBO));
 
 
 
