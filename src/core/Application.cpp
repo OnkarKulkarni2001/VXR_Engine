@@ -536,9 +536,9 @@ void Application::DrawFrame()
     VkExtent2D extent = m_Swapchain->GetExtent();
 
     std::array<VkClearValue, 3> clears{};
-    clears[0].color = { { 0.1f, 0.1f, 0.1f, 1.0f } }; // MSAA color attachment
+    clears[0].color = { { 0.01f, 0.01f, 0.01f, 1.0f } }; // MSAA color attachment
     clears[1].depthStencil = { 1.0f, 0 };             // depth
-    clears[2].color = { { 0.1f, 0.1f, 0.1f, 1.0f } }; // resolve attachment (often required)
+    clears[2].color = { { 0.01f, 0.01f, 0.01f, 1.0f } }; // resolve attachment (often required)
 
 
     VkRenderPassBeginInfo rpBegin{};

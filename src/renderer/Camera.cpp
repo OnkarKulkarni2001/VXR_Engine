@@ -3,40 +3,35 @@
 #include <glm/gtc/constants.hpp>
 #include <algorithm>
 
-glm::vec3 Camera::Forward() const
+Camera::Camera()
 {
-    // Yaw around Y, Pitch around X
-    // Forward points toward -Z when yaw=0, pitch=0 (common convention)
+    UpdateBasis();
+}
+
+
+glm::mat4 Camera::GetView() const
+{
+
+    return glm::lookAt(m_Position, m_Position + m_Forward, m_Up);
+}
+
+void Camera::UpdateBasis()
+{
     const float cy = cosf(m_Yaw);
     const float sy = sinf(m_Yaw);
     const float cp = cosf(m_Pitch);
     const float sp = sinf(m_Pitch);
 
-    glm::vec3 f;
-    f.x = sy * cp;
-    f.y = sp;
-    f.z = -cy * cp;
+    m_Forward = glm::normalize(glm::vec3(
+        sy * cp,
+        sp,
+        -cy * cp
+    ));
 
-    return glm::normalize(f);
+    m_Right = glm::normalize(glm::cross(m_Forward, m_WorldUp));
+    m_Up = glm::normalize(glm::cross(m_Right, m_Forward));
 }
 
-glm::vec3 Camera::Right() const
-{
-    return glm::normalize(glm::cross(Forward(), m_WorldUp));
-}
-
-void Camera::ClampPitch()
-{
-    // Avoid gimbal lock / flip. Keep pitch just below +/- 90 degrees.
-    const float limit = glm::half_pi<float>() - 0.001f;
-    m_Pitch = std::clamp(m_Pitch, -limit, limit);
-}
-
-glm::mat4 Camera::GetView() const
-{
-    const glm::vec3 f = Forward();
-    return glm::lookAt(m_Position, m_Position + f, m_WorldUp);
-}
 
 glm::mat4 Camera::GetProjection(float aspect) const
 {
@@ -50,15 +45,15 @@ glm::mat4 Camera::GetProjection(float aspect) const
 
 void Camera::MoveForward(float amount)
 {
-    m_Position += Forward() * amount;
+    m_Position += m_Forward * amount;
 }
 
 void Camera::MoveRight(float amount)
 {
-    m_Position += Right() * amount;
+    m_Position += m_Right * amount;
 }
 
 void Camera::MoveUp(float amount)
 {
-    m_Position += m_WorldUp * amount;
+    m_Position += m_Up * amount;
 }

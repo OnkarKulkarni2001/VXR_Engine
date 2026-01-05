@@ -1,9 +1,13 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 class Camera
 {
 public:
+
+    Camera();
+
     // Camera configuration
     void SetPosition(const glm::vec3& p) { m_Position = p; }
     const glm::vec3& GetPosition() const { return m_Position; }
@@ -13,14 +17,17 @@ public:
     {
         m_Yaw = yawRadians;
         m_Pitch = pitchRadians;
-        ClampPitch();
+
     }
 
     void AddYawPitch(float yawDelta, float pitchDelta)
     {
         m_Yaw += yawDelta;
         m_Pitch += pitchDelta;
-        ClampPitch();
+
+
+
+        UpdateBasis();
     }
 
     void SetPerspective(float fovRadians, float nearZ, float farZ)
@@ -40,10 +47,8 @@ public:
     void MoveUp(float amount);
 
 private:
-    glm::vec3 Forward() const;
-    glm::vec3 Right() const;
+    void UpdateBasis();
 
-    void ClampPitch();
 
 private:
     glm::vec3 m_Position{ 0.0f, 0.0f, 2.0f };
@@ -57,5 +62,9 @@ private:
     float m_Near = 0.1f;
     float m_Far = 100.0f;
 
-    glm::vec3 m_WorldUp{ 0.0f, 1.0f, 0.0f };
+    glm::vec3 m_Forward{ 0, 0, -1 };
+    glm::vec3 m_Right{ 1, 0,  0 };
+    glm::vec3 m_Up{ 0, 1,  0 };
+
+    glm::vec3 m_WorldUp{ 0, 1, 0 };
 };

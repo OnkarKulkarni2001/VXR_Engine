@@ -1,0 +1,36 @@
+src/
+ ?? core/                 # Engine core (lifecycle, timing)
+ ?   ?? Application
+ ?   ?? FrameContext
+ ?
+ ?? platform/
+ ?   ?? desktop/          # GLFW, Windows
+ ?   ?? android/          # (later) NDK, ANativeWindow
+ ?
+ ?? input/
+ ?   ?? DesktopInput
+ ?   ?? XRInput           # OpenXR actions
+ ?
+ ?? camera/
+ ?   ?? Camera            # math only
+ ?   ?? DesktopCameraController
+ ?   ?? XRCameraRig
+ ?
+ ?? xr/
+ ?   ?? OpenXRInstance
+ ?   ?? OpenXRSession
+ ?   ?? XREyeViews
+ ?
+ ?? renderer/
+ ?   ?? VulkanDevice
+ ?   ?? VulkanSwapchain
+ ?   ?? VulkanRenderer
+ ?   ?? MultiviewSupport
+ ?
+ ?? lighting/
+ ?
+ ?? compute/              # (empty for now)
+ ?
+ ?? neural/               # (empty for now)
+ ?
+ ?? app/                  # demo / sample app
