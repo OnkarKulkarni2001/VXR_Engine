@@ -32,11 +32,23 @@ find_package(glm CONFIG REQUIRED)
 # --------------------------------
 find_package(assimp CONFIG REQUIRED)
 
+# --------------------------------
+# OpenXR (from vcpkg)
+# --------------------------------
+find_package(OpenXR CONFIG REQUIRED)
 
 # --------------------------------
 # Engine executable
 # --------------------------------
-add_executable(VXR_Engine ${ENGINE_SOURCES} "src/asset/ModelLoader.h" "src/asset/ModelLoader.cpp" "src/renderer/Vertex3D.h" "src/renderer/MaterialTemplate.h" "src/renderer/MaterialTemplate.cpp" "src/renderer/VulkanMaterialDescriptors.h" "src/renderer/VulkanMaterialDescriptors.cpp" "src/renderer/MaterialInstance.h" "src/renderer/MaterialInstance.cpp" "src/renderer/VulkanTexture2D.h" "src/renderer/VulkanTexture2D.cpp" "src/renderer/VulkanCheck.h"   "src/lighting/Light.h" "src/lighting/LightingTypes.h" "src/lighting/SceneLighting.h" "src/lighting/LightFactory.h" "src/lighting/LightingLimits.h" )
+add_executable(VXR_Engine ${ENGINE_SOURCES} "src/asset/ModelLoader.h" "src/asset/ModelLoader.cpp" "src/renderer/Vertex3D.h" "src/renderer/MaterialTemplate.h" "src/renderer/MaterialTemplate.cpp" "src/renderer/VulkanMaterialDescriptors.h" "src/renderer/VulkanMaterialDescriptors.cpp" "src/renderer/MaterialInstance.h" "src/renderer/MaterialInstance.cpp" "src/renderer/VulkanTexture2D.h" "src/renderer/VulkanTexture2D.cpp" "src/renderer/VulkanCheck.h"   "src/lighting/Light.h" "src/lighting/LightingTypes.h" "src/lighting/SceneLighting.h" "src/lighting/LightFactory.h" "src/lighting/LightingLimits.h"  "src/core/FrameContext.h"   "src/camera/DesktopCameraController/DesktopCameraController.h" "src/camera/DesktopCameraController/DesktopCameraController.cpp" "src/input/DesktopInput/DesktopInput.h" "src/input/DesktopInput/DesktopInput.cpp" "src/xr/OpenXRInstance/OpenXRInstance.h" "src/xr/OpenXRInstance/OpenXRInstance.cpp" "src/xr/XREyeViews/XREyeViews.h" "src/xr/XREyeViews/XREyeViews.cpp" "src/xr/OpenXRSession/OpenXRSession.h" "src/xr/OpenXRSession/OpenXRSession.cpp" "src/xr/OpenXRVulkanHelpers/OpenXRVulkanHelpers.h" "src/xr/OpenXRVulkanHelpers/OpenXRVulkanHelpers.cpp")
+
+if (WIN32)
+    target_compile_definitions(VXR_Engine PRIVATE
+        XR_USE_PLATFORM_WIN32
+        XR_USE_GRAPHICS_API_VULKAN
+    )
+endif()
+
 
 # --------------------------------
 # Link libraries
@@ -47,6 +59,7 @@ target_link_libraries(VXR_Engine
         glfw
         glm::glm
         assimp::assimp
+        OpenXR::openxr_loader
 )
 
 # --------------------------------

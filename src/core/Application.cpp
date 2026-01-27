@@ -26,7 +26,15 @@
 #include "renderer/Scene.h"
 #include "renderer/RenderQueue.h"
 #include "renderer/Camera.h"
-#include "input/CameraController.h"
+
+#include "xr/OpenXRInstance/OpenXRInstance.h"
+#include "xr/XREyeViews/XREyeViews.h"
+#include "xr/OpenXRSession/OpenXRSession.h"
+#include "xr/OpenXRVulkanHelpers/OpenXRVulkanHelpers.h"
+
+#include "camera/DesktopCameraController/DesktopCameraController.h"
+#include "input/DesktopInput/DesktopInput.h"
+
 #include "asset/ModelLoader.h"
 #include "renderer/VulkanTexture2D.h"
 #include "renderer/MaterialInstance.h"
@@ -176,10 +184,25 @@ void Application::Shutdown()
     m_Swapchain = nullptr;
 
     // 6️ Camera & input
+    delete m_Input;
     delete m_CameraController;
     delete m_Camera;
     m_CameraController = nullptr;
     m_Camera = nullptr;
+    m_Input = nullptr;
+
+	// OpenXR session
+    if (m_XRSession)
+    {
+        delete m_XRSession;
+        m_XRSession = nullptr;
+    }
+
+    delete m_XREyeViews;
+    m_XREyeViews = nullptr;
+
+    delete m_XRInstance;
+    m_XRInstance = nullptr;
 
     // 7️ Destroy device LAST
     delete m_Device;
@@ -204,17 +227,68 @@ void Application::Shutdown()
 
 void Application::Run()
 {
-    // 1) Instance
-    m_Instance = new VulkanInstance(true);
+
+    // --- 0) OpenXR FIRST ---
+    m_XRInstance = new OpenXRInstance();
+    m_XREyeViews = new XREyeViews();
+    m_XREyeViews->Init(m_XRInstance->Get(), m_XRInstance->GetSystemId());
+
+    // --- 1) Ask OpenXR what Vulkan instance/device extensions it requires ---
+    std::vector<const char*> xrInstanceExts;
+    std::vector<const char*> xrDeviceExts;
+
+    GetOpenXRVulkanExtensions(m_XRInstance->Get(), m_XRInstance->GetSystemId(), xrInstanceExts, xrDeviceExts);
+
+    // --- 2) Create Vulkan instance WITH OpenXR-required extensions ---
+    m_Instance = new VulkanInstance(true, xrInstanceExts);   // <-- you add this overload
 
     // 2) Surface + Device
     // Store surface in a member so we can destroy it later correctly.
     m_Surface = m_Window->CreateSurface(m_Instance->GetHandle());
 
+    // --- 4) Ask OpenXR which VkPhysicalDevice MUST be used ---
+    VkPhysicalDevice xrPhysicalDevice = GetOpenXRVulkanGraphicsDevice(
+        m_XRInstance->Get(),
+        m_XRInstance->GetSystemId(),
+        m_Instance->GetHandle()
+    );
+
+    if (xrPhysicalDevice == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("OpenXR did not return a valid VkPhysicalDevice.");
+        return;
+    }
+
+    //m_Device = new VulkanDevice(
+    //    m_Instance->GetHandle(),
+    //    m_Surface
+    //);
+
     m_Device = new VulkanDevice(
         m_Instance->GetHandle(),
-        m_Surface
+        xrPhysicalDevice,
+        m_Surface,
+        xrDeviceExts
+	);
+
+    // --- 6) Now create OpenXR session (binding to the Vulkan device you just created) ---
+    m_XRSession = new OpenXRSession();
+    m_XRSession->Create(
+        m_XRInstance->Get(),
+        m_XRInstance->GetSystemId(),
+        m_Instance->GetHandle(),
+        xrPhysicalDevice,
+        m_Device->GetHandle(),
+        m_Device->GetGraphicsQueueFamilyIndex(),
+        0
     );
+
+    auto xrViews = m_XREyeViews->GetViews();
+    uint32_t w = xrViews[0].recommendedWidth;
+    uint32_t h = xrViews[0].recommendedHeight;
+    m_XRSession->CreateColorSwapchain(w, h);
+
+
 
 	// Uniform buffers + descriptors
     const uint32_t FRAMES_IN_FLIGHT = 2;
@@ -333,7 +407,9 @@ void Application::Run()
     m_LastTime = (float)glfwGetTime();
 
 	// Camera controller 
-    m_CameraController = new CameraController(m_Camera);
+    m_CameraController = new DesktopCameraController(*m_Camera);
+
+    m_Input = new DesktopInput(wnd);
 
     glfwSetWindowUserPointer(wnd, m_CameraController);
 
@@ -341,10 +417,11 @@ void Application::Run()
         [](GLFWwindow* wnd, double, double yOffset)
         {
             auto* controller =
-                static_cast<CameraController*>(glfwGetWindowUserPointer(wnd));
+                static_cast<DesktopCameraController*>(glfwGetWindowUserPointer(wnd));
             controller->OnScroll(yOffset);
         });
 
+	
 
 	//  Mesh creation
     //m_TriangleMesh = new Mesh(
@@ -433,10 +510,17 @@ void Application::Run()
     m_SceneUBO.lighting.spotLightCount = 0;
 
     // Main loop
-    while (!m_Window->ShouldClose())
+    if (m_UseXR)
     {
-        glfwPollEvents();
-        DrawFrame();
+        XRRun();
+    }
+    else
+    {
+        while (!m_Window->ShouldClose())
+        {
+            glfwPollEvents();
+            DrawFrame();
+        }
     }
 
     vkDeviceWaitIdle(m_Device->GetHandle());
@@ -482,15 +566,43 @@ void Application::DrawFrame()
     }
 
 
+
     // --- Delta time
     float now = (float)glfwGetTime();
     float dt = now - m_LastTime;
+    //m_LastTime = now;
+
+    FrameContext frame;
+    frame.deltaTime = now - m_LastTime;
     m_LastTime = now;
 
-    m_CameraController->Update(m_Window->GetHandle(), dt);
+	uint32_t frameIndex = m_Sync->GetCurrentFrame();
 
-    // --- Update uniform buffer (per-frame)
-    uint32_t frame = m_Sync->GetCurrentFrame();
+
+    // 1) Update desktop input once per frame
+    m_Input->Update();
+
+    // 2) Mouse look only while RMB is held
+    GLFWwindow* wnd = m_Window->GetHandle();
+    const bool rmb = (glfwGetMouseButton(wnd, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+
+    // Capture cursor while looking (so mouse doesn't hit screen edges)
+    glfwSetInputMode(wnd, GLFW_CURSOR, rmb ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+
+    if (rmb)
+    {
+        m_CameraController->OnMouseDelta(m_Input->GetMouseDX(), m_Input->GetMouseDY());
+    }
+
+    // 3) Movement (WASDQE) - use dt
+    const float speed = 5.0f; // or expose from controller
+    if (glfwGetKey(wnd, GLFW_KEY_W) == GLFW_PRESS) m_Camera->MoveForward(speed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_S) == GLFW_PRESS) m_Camera->MoveForward(-speed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_D) == GLFW_PRESS) m_Camera->MoveRight(speed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_A) == GLFW_PRESS) m_Camera->MoveRight(-speed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_E) == GLFW_PRESS) m_Camera->MoveUp(speed * dt);
+    if (glfwGetKey(wnd, GLFW_KEY_Q) == GLFW_PRESS) m_Camera->MoveUp(-speed * dt);
+
 
  //   CameraUBO ubo{};
 
@@ -514,7 +626,7 @@ void Application::DrawFrame()
 
 	m_SceneUBO.projection = m_Camera->GetProjection(aspect);
 
-	m_UniformBuffers->Update(frame, &m_SceneUBO, sizeof(m_SceneUBO));
+	m_UniformBuffers->Update(frameIndex, &m_SceneUBO, sizeof(m_SceneUBO));
 
 
 
@@ -585,7 +697,7 @@ void Application::DrawFrame()
         );
 
         //// Set 0 (global/per-frame)
-        VkDescriptorSet globalSet0 = m_Descriptors->GetSet(frame);
+        VkDescriptorSet globalSet0 = m_Descriptors->GetSet(frameIndex);
         VkDescriptorSet materialSet1 = rc.materialSet;
 
         VkDescriptorSet sets[] = { globalSet0, materialSet1 };
@@ -681,4 +793,202 @@ void Application::DrawFrame()
 
     // 6) Advance frame slot
     m_Sync->AdvanceFrame();
+}
+
+void Application::DrawXRFrame()
+{
+    XRFrameInfo frame{};
+    if (!m_XRSession->BeginFrame(frame))
+        return;
+
+    if (!frame.shouldRender)
+    {
+        m_XRSession->EndFrame(frame, nullptr, 0);
+        return;
+    }
+
+    // 1) Locate views (2 eyes)
+    std::vector<XrView> locatedViews;
+    m_XRSession->LocateViews(
+        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+        frame.predictedDisplayTime,
+        locatedViews
+    );
+
+    // 2) Acquire XR swapchain image
+    uint32_t imageIndex = 0;
+    if (!m_XRSession->AcquireSwapchainImage(imageIndex)) return;
+    if (!m_XRSession->WaitSwapchainImage()) return;
+
+    VkImage xrColorImage = m_XRSession->GetSwapchainImages()[imageIndex];
+
+    // 3) Render into xrColorImage (YOU MUST IMPLEMENT THIS)
+    //    This is where you record a command buffer that targets the XR swapchain VkImage.
+    //    You cannot use m_Framebuffers (they are built for the window swapchain).
+    RenderToXRSwapchainImage(xrColorImage, imageIndex, locatedViews);
+
+    // 4) Release XR swapchain image
+    m_XRSession->ReleaseSwapchainImage();
+
+    // 5) Submit projection layer
+    uint32_t w = m_XRSession->GetSwapchainWidth();
+    uint32_t h = m_XRSession->GetSwapchainHeight();
+
+    XrCompositionLayerProjection layer{ XR_TYPE_COMPOSITION_LAYER_PROJECTION };
+    layer.space = m_XRSession->GetAppSpace();
+
+    std::vector<XrCompositionLayerProjectionView> projViews(locatedViews.size());
+    for (uint32_t i = 0; i < (uint32_t)locatedViews.size(); ++i)
+    {
+        projViews[i] = { XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW };
+        projViews[i].pose = locatedViews[i].pose;
+        projViews[i].fov = locatedViews[i].fov;
+
+        projViews[i].subImage.swapchain = m_XRSession->GetSwapchain();
+        projViews[i].subImage.imageRect.offset = { 0, 0 };
+        projViews[i].subImage.imageRect.extent = { (int32_t)w, (int32_t)h };
+        projViews[i].subImage.imageArrayIndex = i; // layer 0/1
+    }
+
+    layer.viewCount = (uint32_t)projViews.size();
+    layer.views = projViews.data();
+
+    const XrCompositionLayerBaseHeader* layers[] =
+    {
+        (const XrCompositionLayerBaseHeader*)&layer
+    };
+
+    m_XRSession->EndFrame(frame, layers, 1);
+}
+
+void Application::RenderToXRSwapchainImage(VkImage xrColorImage, uint32_t /*imageIndex*/, const std::vector<XrView>& /*locatedViews*/)
+{
+    // Minimal: clear the XR swapchain image every frame.
+    // This is intentionally simple: submit and wait (not optimal, but great for proving XR path).
+
+    VkDevice device = m_Device->GetHandle();
+
+    // Allocate a temporary command buffer from your graphics command pool
+    VkCommandBufferAllocateInfo alloc{};
+    alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc.commandPool = m_GraphicsCmdPool->GetHandle();  // <-- Your VulkanCommandPool must expose GetHandle()
+    alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc.commandBufferCount = 1;
+
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    if (vkAllocateCommandBuffers(device, &alloc, &cmd) != VK_SUCCESS)
+    {
+        LOG_ERROR("XR: Failed to allocate command buffer for clear.");
+        return;
+    }
+
+    VkCommandBufferBeginInfo begin{};
+    begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(cmd, &begin);
+
+    // Transition XR image to GENERAL so we can clear it
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.oldLayout = m_XRImageLayoutInitialized ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED;; // Safe for a first test; later track layouts properly
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = xrColorImage;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 2; // arraySize=2 swapchain (left+right)
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    // Clear color (pick anything obvious)
+    VkClearColorValue clearColor{};
+    clearColor.float32[0] = 0.02f;
+    clearColor.float32[1] = 0.02f;
+    clearColor.float32[2] = 0.08f;
+    clearColor.float32[3] = 1.0f;
+
+    VkImageSubresourceRange range{};
+    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    range.baseMipLevel = 0;
+    range.levelCount = 1;
+    range.baseArrayLayer = 0;
+    range.layerCount = 2;
+
+    vkCmdClearColorImage(cmd, xrColorImage, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &range);
+
+    // Barrier after clear (optional but keeps sync sane)
+    VkImageMemoryBarrier barrier2 = barrier;
+    barrier2.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier2.dstAccessMask = 0;
+    barrier2.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier2.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier2
+    );
+
+    vkEndCommandBuffer(cmd);
+
+    // Submit and wait (simple correctness first)
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+    VkFence fence = VK_NULL_HANDLE;
+    vkCreateFence(device, &fenceInfo, nullptr, &fence);
+
+    VkSubmitInfo submit{};
+    submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit.commandBufferCount = 1;
+    submit.pCommandBuffers = &cmd;
+
+    vkQueueSubmit(m_Device->GetGraphicsQueue(), 1, &submit, fence);
+    vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+    
+    m_XRImageLayoutInitialized = true;
+
+    vkDestroyFence(device, fence, nullptr);
+    vkFreeCommandBuffers(device, m_GraphicsCmdPool->GetHandle(), 1, &cmd);
+
+}
+
+void Application::XRRun()
+{
+    // XR loop owns polling + choosing XR vs desktop rendering
+    while (!m_Window->ShouldClose())
+    {
+        glfwPollEvents();
+
+        // Drive OpenXR state machine
+        m_XRSession->PollEvents();
+
+        if (m_XRSession->IsRunning())
+        {
+            DrawXRFrame();
+        }
+        else
+        {
+            // Optional: render desktop while headset not active
+            DrawFrame();
+        }
+    }
 }

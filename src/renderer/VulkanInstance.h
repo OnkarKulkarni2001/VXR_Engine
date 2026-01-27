@@ -8,6 +8,9 @@ class VulkanInstance
 {
 public:
     VulkanInstance(bool enableValidationLayers = true);
+
+    VulkanInstance(bool enableValidationLayers, const std::vector<const char*>& extraExtensions);
+
     ~VulkanInstance();
 
     VkInstance GetHandle() const { return m_Instance; }
@@ -16,6 +19,8 @@ private:
     VkInstance m_Instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_DebugMessenger = nullptr;
     bool m_EnableValidationLayers = true;
+
+    std::vector<const char*> m_ExtraExtensions;
 
 private:
     void CreateInstance();

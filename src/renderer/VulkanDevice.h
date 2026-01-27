@@ -7,6 +7,11 @@ class VulkanDevice
 {
 public:
     VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
+    VulkanDevice(VkInstance instance,
+        VkPhysicalDevice forcedPhysicalDevice,
+        VkSurfaceKHR surface,
+        const std::vector<const char*>& extraDeviceExtensions);
+
     ~VulkanDevice();
 
     VkDevice GetHandle() const { return m_Device; }
@@ -68,5 +73,8 @@ private:
 
     // NEW: MSAA sample count
     VkSampleCountFlagBits m_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+    std::vector<const char*> m_ExtraDeviceExtensions;
+
 
 };

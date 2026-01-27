@@ -4,6 +4,7 @@
 #include "renderer/MaterialTemplate.h"
 #include "renderer/VulkanMaterialDescriptors.h"
 #include "renderer/SceneUBO.h"
+
 #include "Window.h"
 #include <vector>
 #include <memory>
@@ -26,9 +27,14 @@ class VulkanIndexBuffer;
 class Mesh;
 class RenderObject;
 class Camera;
-class CameraController;
+class DesktopCameraController;
+class DesktopInput;
 class MaterialInstance;
 class VulkanTexture2D;
+
+class OpenXRInstance;
+class XREyeViews;
+class OpenXRSession;
 
 class Application {
 public:
@@ -44,6 +50,12 @@ public:
     //void DrawFrame(CameraUBO* ubo);
 
     void DrawFrame();
+
+    void XRRun();
+
+    void DrawXRFrame();
+
+    void RenderToXRSwapchainImage(VkImage xrColorImage, uint32_t imageIndex, const std::vector<XrView>& locatedViews);
     
 public:
     std::vector<RenderObject> m_RenderObjects;
@@ -82,7 +94,8 @@ private:
     Mesh* m_TriangleMesh = nullptr;
 
     Camera* m_Camera = nullptr;
-    CameraController* m_CameraController = nullptr;
+    DesktopCameraController* m_CameraController = nullptr;
+	DesktopInput* m_Input = nullptr;
 
 	MaterialTemplate* m_MaterialTemplate = nullptr;
 	VulkanMaterialDescriptors* m_MaterialPool = nullptr;
@@ -91,9 +104,17 @@ private:
     VulkanTexture2D* m_DefaultNormal = nullptr;
     MaterialInstance* m_DefaultMaterial = nullptr;
 
+	OpenXRInstance* m_XRInstance = nullptr;
+	XREyeViews* m_XREyeViews = nullptr;
+	OpenXRSession* m_XRSession = nullptr;
+
 	SceneUBO m_SceneUBO = {};
 
     float   m_LastTime = 0.0f;
+
+    bool m_UseXR = true;
+    bool m_XRImageLayoutInitialized = false; // for layout barrier fix
+
 
 	// Mouse input handling
     bool   m_FirstMouse = true;

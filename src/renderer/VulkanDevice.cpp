@@ -5,12 +5,40 @@
 #include <cstring>
 #include <set>
 #include <iostream>
+#include <unordered_set>
+#include <string>
 
 VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
 {
     PickPhysicalDevice(instance, surface);
     DetermineMSAASamples();       // NEW: decide what MSAA we can use
     CreateLogicalDevice(surface);
+}
+
+VulkanDevice::VulkanDevice(VkInstance instance,
+    VkPhysicalDevice forcedPhysicalDevice,
+    VkSurfaceKHR surface,
+    const std::vector<const char*>& extraDeviceExtensions)
+{
+    m_ExtraDeviceExtensions = extraDeviceExtensions;
+
+    // Use OpenXR-chosen physical device
+    m_PhysicalDevice = forcedPhysicalDevice;
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    {
+        LOG_ERROR("VulkanDevice: forcedPhysicalDevice is VK_NULL_HANDLE");
+        return;
+    }
+
+    // Find queue families against the same surface (for desktop present) and graphics
+    FindQueueFamilies(m_PhysicalDevice, surface);
+
+    // Create device (must include OpenXR required device extensions)
+    CreateLogicalDevice(surface);
+
+    // MSAA samples based on chosen device
+    DetermineMSAASamples();
 }
 
 VulkanDevice::~VulkanDevice()
@@ -98,12 +126,15 @@ void VulkanDevice::FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
     {
         if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
             m_GraphicsFamilyIndex = i;
+        
+        if (surface != VK_NULL_HANDLE)
+        {
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-
-        if (presentSupport)
-            m_PresentFamilyIndex = i;
+            if (presentSupport)
+                m_PresentFamilyIndex = i;
+        }
 
         if (m_GraphicsFamilyIndex != UINT32_MAX &&
             m_PresentFamilyIndex != UINT32_MAX)
@@ -115,36 +146,62 @@ void VulkanDevice::FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 
 void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
 {
+    // 1) Queue create infos (graphics always, present optional)
     std::vector<VkDeviceQueueCreateInfo> queueInfos;
-    std::set<uint32_t> uniqueQueues = {
-        m_GraphicsFamilyIndex,
-        m_PresentFamilyIndex
-    };
+
+    std::set<uint32_t> uniqueQueues;
+    uniqueQueues.insert(m_GraphicsFamilyIndex);
+
+    // Add present family only if valid
+    if (m_PresentFamilyIndex != UINT32_MAX)
+        uniqueQueues.insert(m_PresentFamilyIndex);
 
     float queuePriority = 1.0f;
 
-    for (uint32_t queue : uniqueQueues)
+    for (uint32_t queueFamily : uniqueQueues)
     {
         VkDeviceQueueCreateInfo qInfo{};
         qInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        qInfo.queueFamilyIndex = queue;
+        qInfo.queueFamilyIndex = queueFamily;
         qInfo.queueCount = 1;
         qInfo.pQueuePriorities = &queuePriority;
-
         queueInfos.push_back(qInfo);
     }
 
-    const std::vector<const char*> deviceExtensions = {
+    // 2) Device extensions: swapchain + OpenXR required (dedup)
+    std::vector<const char*> baseExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
+    std::unordered_set<std::string> seen;
+    std::vector<const char*> deviceExtensions;
+    deviceExtensions.reserve(baseExtensions.size() + m_ExtraDeviceExtensions.size());
+
+    for (const char* e : baseExtensions)
+    {
+        if (!e) continue;
+        if (seen.insert(std::string(e)).second)
+            deviceExtensions.push_back(e);
+    }
+
+    for (const char* e : m_ExtraDeviceExtensions)
+    {
+        if (!e) continue;
+        if (seen.insert(std::string(e)).second)
+            deviceExtensions.push_back(e);
+    }
+
+    // 3) Features (keep empty for now; add later as needed)
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    // deviceFeatures.samplerAnisotropy = VK_TRUE; // enable if you use it + check support
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = queueInfos.size();
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
     createInfo.pQueueCreateInfos = queueInfos.data();
+    createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
 
     if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
     {
@@ -152,12 +209,17 @@ void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
         return;
     }
 
+    // 4) Get queues
     vkGetDeviceQueue(m_Device, m_GraphicsFamilyIndex, 0, &m_GraphicsQueue);
-    vkGetDeviceQueue(m_Device, m_PresentFamilyIndex, 0, &m_PresentQueue);
+
+    if (m_PresentFamilyIndex != UINT32_MAX)
+        vkGetDeviceQueue(m_Device, m_PresentFamilyIndex, 0, &m_PresentQueue);
+    else
+        m_PresentQueue = VK_NULL_HANDLE;
 
     LOG_INFO("Logical device created successfully!");
 
-    // Create transfer / one-time command pool
+    // 5) Create transfer / one-time command pool (same as your original)
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_GraphicsFamilyIndex;
@@ -169,7 +231,6 @@ void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
     {
         throw std::runtime_error("Failed to create transfer command pool!");
     }
-
 }
 
 void VulkanDevice::DetermineMSAASamples()

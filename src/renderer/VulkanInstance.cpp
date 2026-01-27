@@ -1,6 +1,7 @@
-#include "VulkanInstance.h"
+﻿#include "VulkanInstance.h"
 #include "../core/Logger.h"
 #include <GLFW/glfw3.h>
+#include <unordered_set>
 
 static const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -12,6 +13,14 @@ VulkanInstance::VulkanInstance(bool enableValidationLayers)
     CreateInstance();
     SetupDebugMessenger();
 }
+
+VulkanInstance::VulkanInstance(bool enableValidationLayers, const std::vector<const char*>& extraExtensions)
+    : m_EnableValidationLayers(enableValidationLayers), m_ExtraExtensions(extraExtensions)
+{
+    CreateInstance();
+    SetupDebugMessenger();
+}
+
 
 VulkanInstance::~VulkanInstance()
 {
@@ -97,6 +106,18 @@ bool VulkanInstance::CheckValidationLayerSupport()
 
 std::vector<const char*> VulkanInstance::GetRequiredExtensions()
 {
+    /*uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    if (m_EnableValidationLayers)
+    {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    return extensions;*/
+
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -107,8 +128,28 @@ std::vector<const char*> VulkanInstance::GetRequiredExtensions()
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
-    return extensions;
+    // Append OpenXR-required instance extensions (avoid duplicates)
+    std::unordered_set<std::string> seen;
+    std::vector<const char*> merged;
+    merged.reserve(extensions.size() + m_ExtraExtensions.size());
+
+    for (const char* e : extensions)
+    {
+        if (!e) continue;
+        if (seen.insert(std::string(e)).second)
+            merged.push_back(e);
+    }
+
+    for (const char* e : m_ExtraExtensions)
+    {
+        if (!e) continue;
+        if (seen.insert(std::string(e)).second)
+            merged.push_back(e);
+    }
+
+    return merged;
 }
+
 
 void VulkanInstance::SetupDebugMessenger()
 {
