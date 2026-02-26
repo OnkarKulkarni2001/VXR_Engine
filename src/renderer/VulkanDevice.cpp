@@ -146,61 +146,46 @@ void VulkanDevice::FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 
 void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
 {
-    // 1) Queue create infos (graphics always, present optional)
     std::vector<VkDeviceQueueCreateInfo> queueInfos;
-
-    std::set<uint32_t> uniqueQueues;
-    uniqueQueues.insert(m_GraphicsFamilyIndex);
-
-    // Add present family only if valid
-    if (m_PresentFamilyIndex != UINT32_MAX)
-        uniqueQueues.insert(m_PresentFamilyIndex);
+    std::set<uint32_t> uniqueQueues = { m_GraphicsFamilyIndex, m_PresentFamilyIndex };
 
     float queuePriority = 1.0f;
-
-    for (uint32_t queueFamily : uniqueQueues)
+    for (uint32_t queue : uniqueQueues)
     {
         VkDeviceQueueCreateInfo qInfo{};
         qInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        qInfo.queueFamilyIndex = queueFamily;
+        qInfo.queueFamilyIndex = queue;
         qInfo.queueCount = 1;
         qInfo.pQueuePriorities = &queuePriority;
         queueInfos.push_back(qInfo);
     }
 
-    // 2) Device extensions: swapchain + OpenXR required (dedup)
-    std::vector<const char*> baseExtensions = {
+    // Base extensions we always need
+    std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    std::unordered_set<std::string> seen;
-    std::vector<const char*> deviceExtensions;
-    deviceExtensions.reserve(baseExtensions.size() + m_ExtraDeviceExtensions.size());
-
-    for (const char* e : baseExtensions)
+    // Append OpenXR-required device extensions (avoid duplicates)
+    for (const char* ext : m_ExtraDeviceExtensions)
     {
-        if (!e) continue;
-        if (seen.insert(std::string(e)).second)
-            deviceExtensions.push_back(e);
+        if (!ext) continue;
+
+        bool exists = false;
+        for (const char* e : deviceExtensions)
+        {
+            if (e && std::strcmp(e, ext) == 0) { exists = true; break; }
+        }
+        if (!exists) deviceExtensions.push_back(ext);
     }
 
-    for (const char* e : m_ExtraDeviceExtensions)
-    {
-        if (!e) continue;
-        if (seen.insert(std::string(e)).second)
-            deviceExtensions.push_back(e);
-    }
-
-    // 3) Features (keep empty for now; add later as needed)
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    // deviceFeatures.samplerAnisotropy = VK_TRUE; // enable if you use it + check support
+    VkPhysicalDeviceFeatures features{}; // enable what you need later
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
+    createInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
     createInfo.pQueueCreateInfos = queueInfos.data();
-    createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.pEnabledFeatures = &features;
+    createInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
     if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
@@ -209,28 +194,19 @@ void VulkanDevice::CreateLogicalDevice(VkSurfaceKHR surface)
         return;
     }
 
-    // 4) Get queues
     vkGetDeviceQueue(m_Device, m_GraphicsFamilyIndex, 0, &m_GraphicsQueue);
-
-    if (m_PresentFamilyIndex != UINT32_MAX)
-        vkGetDeviceQueue(m_Device, m_PresentFamilyIndex, 0, &m_PresentQueue);
-    else
-        m_PresentQueue = VK_NULL_HANDLE;
+    vkGetDeviceQueue(m_Device, m_PresentFamilyIndex, 0, &m_PresentQueue);
 
     LOG_INFO("Logical device created successfully!");
 
-    // 5) Create transfer / one-time command pool (same as your original)
+    // One-time / transfer command pool (graphics family)
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_GraphicsFamilyIndex;
-    poolInfo.flags =
-        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |
-        VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_TransferCommandPool) != VK_SUCCESS)
-    {
         throw std::runtime_error("Failed to create transfer command pool!");
-    }
 }
 
 void VulkanDevice::DetermineMSAASamples()

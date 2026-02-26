@@ -1,11 +1,9 @@
 #pragma once
 
+#include "xr/OpenXRCommon.h"
+
 #include <vector>
 #include <string>
-
-#include <vulkan/vulkan.h>
-#include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
 
 struct XRFrameInfo
 {
@@ -31,12 +29,17 @@ public:
     );
 
     void Destroy();
+
+    // Call each frame to drive session state.
     void PollEvents();
 
     bool IsRunning() const { return m_Running; }
+    bool ExitRequested() const { return m_ExitRequested; }
+
     XrSession GetSession() const { return m_Session; }
     XrSpace GetAppSpace() const { return m_AppSpace; }
 
+    // Swapchain (single array swapchain, arraySize=2)
     bool CreateColorSwapchain(uint32_t width, uint32_t height, int64_t preferredFormat = 0);
     void DestroySwapchain();
 
@@ -46,29 +49,32 @@ public:
     uint32_t GetSwapchainHeight() const { return m_SwapchainHeight; }
     const std::vector<VkImage>& GetSwapchainImages() const { return m_SwapchainVkImages; }
 
+    // Frame loop
     bool BeginFrame(XRFrameInfo& outFrame);
     bool EndFrame(const XRFrameInfo& frame, const XrCompositionLayerBaseHeader* const* layers, uint32_t layerCount);
 
+    // Views for stereo rendering
     bool LocateViews(XrViewConfigurationType viewType, XrTime displayTime, std::vector<XrView>& outViews);
 
+    // Swapchain acquire/release
     bool AcquireSwapchainImage(uint32_t& outImageIndex);
     bool WaitSwapchainImage();
     bool ReleaseSwapchainImage();
 
+    // Utility
     std::vector<int64_t> EnumerateSwapchainFormats() const;
 
 private:
+    // Function pointers (KHR_vulkan_enable2)
+    PFN_xrGetVulkanInstanceExtensionsKHR  pfnGetVulkanInstanceExtensionsKHR = nullptr;
+    PFN_xrGetVulkanDeviceExtensionsKHR    pfnGetVulkanDeviceExtensionsKHR = nullptr;
+    PFN_xrGetVulkanGraphicsDevice2KHR     pfnGetVulkanGraphicsDevice2KHR = nullptr;
+
     bool LoadVulkanEnable2Functions();
     bool CreateSpaces();
     void DestroySpaces();
 
     static std::string XrResultString(XrInstance inst, XrResult r);
-
-private:
-    // KHR_vulkan_enable2 function pointers
-    PFN_xrGetVulkanInstanceExtensionsKHR  pfnGetVulkanInstanceExtensionsKHR = nullptr;
-    PFN_xrGetVulkanDeviceExtensionsKHR    pfnGetVulkanDeviceExtensionsKHR = nullptr;
-    PFN_xrGetVulkanGraphicsDevice2KHR     pfnGetVulkanGraphicsDevice2KHR = nullptr;
 
 private:
     XrInstance   m_Instance = XR_NULL_HANDLE;
@@ -79,17 +85,21 @@ private:
     bool           m_Running = false;
     bool           m_ExitRequested = false;
 
-    XrSpace m_AppSpace = XR_NULL_HANDLE;
+    // App reference space
+    XrSpace      m_AppSpace = XR_NULL_HANDLE;
 
+    // View configuration
     XrViewConfigurationType m_ViewType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
     std::vector<XrView>     m_Views;
 
+    // Swapchain (color)
     XrSwapchain  m_ColorSwapchain = XR_NULL_HANDLE;
     int64_t      m_ColorSwapchainFormat = 0;
     uint32_t     m_SwapchainWidth = 0;
     uint32_t     m_SwapchainHeight = 0;
     std::vector<VkImage> m_SwapchainVkImages;
 
+    // Vulkan handles used by OpenXR binding
     VkInstance       m_VkInstance = VK_NULL_HANDLE;
     VkPhysicalDevice m_VkPhysicalDevice = VK_NULL_HANDLE;
     VkDevice         m_VkDevice = VK_NULL_HANDLE;

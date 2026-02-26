@@ -1,6 +1,6 @@
 #pragma once
-#include <openxr/openxr.h>
-#include <string>
+
+#include "xr/OpenXRCommon.h"
 
 class OpenXRInstance
 {
@@ -14,6 +14,7 @@ public:
 private:
     void CreateInstance();
     void GetSystem();
+    void CreateDebugMessenger();
 
 private:
     XrInstance m_Instance = XR_NULL_HANDLE;

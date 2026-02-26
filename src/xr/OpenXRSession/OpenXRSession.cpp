@@ -1,4 +1,4 @@
-#include "OpenXRSession.h"
+#include "xr/OpenXRSession/OpenXRSession.h"
 #include "core/Logger.h"
 
 #include <cstring>
@@ -69,11 +69,10 @@ bool OpenXRSession::Create(
 
     if (!LoadVulkanEnable2Functions())
     {
-        LOG_ERROR("[OpenXRSession] Failed to load XR_KHR_vulkan_enable2 functions.");
+        LOG_ERROR("[OpenXRSession] Failed to load Vulkan enable2 functions. Ensure XR_KHR_vulkan_enable2 is enabled at xrCreateInstance.");
         return false;
     }
 
-    // Vulkan enable2 binding
     XrGraphicsBindingVulkan2KHR bind{ XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR };
     bind.instance = m_VkInstance;
     bind.physicalDevice = m_VkPhysicalDevice;
@@ -85,7 +84,7 @@ bool OpenXRSession::Create(
     sci.next = &bind;
     sci.systemId = m_SystemId;
 
-    XrResult r = xrCreateSession(m_Instance, &sci, &m_Session);
+    const XrResult r = xrCreateSession(m_Instance, &sci, &m_Session);
     if (!XR_SUCCEEDED_LOG(m_Instance, r, "xrCreateSession"))
     {
         m_Session = XR_NULL_HANDLE;
@@ -97,7 +96,7 @@ bool OpenXRSession::Create(
     if (!CreateSpaces())
         return false;
 
-    // allocate views (2 typical, but real count comes from xrLocateViews)
+    // Pre-allocate views (usually 2 for stereo)
     m_Views.resize(2);
     for (auto& v : m_Views) v.type = XR_TYPE_VIEW;
 
@@ -127,9 +126,10 @@ bool OpenXRSession::CreateSpaces()
 {
     XrReferenceSpaceCreateInfo rs{ XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
     rs.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
-    rs.poseInReferenceSpace = { {0,0,0,1}, {0,0,0} };
+    rs.poseInReferenceSpace.orientation = { 0,0,0,1 };
+    rs.poseInReferenceSpace.position = { 0,0,0 };
 
-    XrResult r = xrCreateReferenceSpace(m_Session, &rs, &m_AppSpace);
+    const XrResult r = xrCreateReferenceSpace(m_Session, &rs, &m_AppSpace);
     if (!XR_SUCCEEDED_LOG(m_Instance, r, "xrCreateReferenceSpace(LOCAL)"))
     {
         m_AppSpace = XR_NULL_HANDLE;
@@ -168,7 +168,7 @@ void OpenXRSession::PollEvents()
                 XrSessionBeginInfo bi{ XR_TYPE_SESSION_BEGIN_INFO };
                 bi.primaryViewConfigurationType = m_ViewType;
 
-                XrResult r = xrBeginSession(m_Session, &bi);
+                const XrResult r = xrBeginSession(m_Session, &bi);
                 if (XR_SUCCEEDED_LOG(m_Instance, r, "xrBeginSession"))
                 {
                     m_Running = true;
@@ -177,7 +177,7 @@ void OpenXRSession::PollEvents()
             }
             else if (m_State == XR_SESSION_STATE_STOPPING)
             {
-                XrResult r = xrEndSession(m_Session);
+                const XrResult r = xrEndSession(m_Session);
                 XR_SUCCEEDED_LOG(m_Instance, r, "xrEndSession");
                 m_Running = false;
                 LOG_INFO("[OpenXR] Session stopped.");
@@ -207,6 +207,7 @@ std::vector<int64_t> OpenXRSession::EnumerateSwapchainFormats() const
     xrEnumerateSwapchainFormats(m_Session, 0, &count, nullptr);
     formats.resize(count);
     xrEnumerateSwapchainFormats(m_Session, count, &count, formats.data());
+
     return formats;
 }
 
@@ -220,7 +221,7 @@ bool OpenXRSession::CreateColorSwapchain(uint32_t width, uint32_t height, int64_
         return false;
     }
 
-    auto formats = EnumerateSwapchainFormats();
+    const auto formats = EnumerateSwapchainFormats();
     if (formats.empty())
     {
         LOG_ERROR("[OpenXR] No swapchain formats reported.");
@@ -262,7 +263,7 @@ bool OpenXRSession::CreateColorSwapchain(uint32_t width, uint32_t height, int64_
     ci.width = width;
     ci.height = height;
     ci.faceCount = 1;
-    ci.arraySize = 2;
+    ci.arraySize = 2; // stereo
     ci.mipCount = 1;
 
     XrResult r = xrCreateSwapchain(m_Session, &ci, &m_ColorSwapchain);
@@ -276,8 +277,137 @@ bool OpenXRSession::CreateColorSwapchain(uint32_t width, uint32_t height, int64_
     m_SwapchainWidth = width;
     m_SwapchainHeight = height;
 
+    // Enumerate swapchain images -> VkImage list
     uint32_t imageCount = 0;
     xrEnumerateSwapchainImages(m_ColorSwapchain, 0, &imageCount, nullptr);
 
     std::vector<XrSwapchainImageVulkanKHR> xrImages(imageCount);
-    for
+    for (auto& im : xrImages) im.type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+
+    r = xrEnumerateSwapchainImages(
+        m_ColorSwapchain,
+        imageCount,
+        &imageCount,
+        (XrSwapchainImageBaseHeader*)xrImages.data()
+    );
+
+    if (!XR_SUCCEEDED_LOG(m_Instance, r, "xrEnumerateSwapchainImages"))
+        return false;
+
+    m_SwapchainVkImages.resize(imageCount);
+    for (uint32_t i = 0; i < imageCount; ++i)
+        m_SwapchainVkImages[i] = xrImages[i].image;
+
+    LOG_INFO("[OpenXR] Color swapchain created. Images: " + std::to_string(imageCount) +
+        " Format(Vk): " + std::to_string((int)chosen) +
+        " Size: " + std::to_string(width) + "x" + std::to_string(height));
+
+    return true;
+}
+
+void OpenXRSession::DestroySwapchain()
+{
+    m_SwapchainVkImages.clear();
+
+    if (m_ColorSwapchain != XR_NULL_HANDLE)
+    {
+        xrDestroySwapchain(m_ColorSwapchain);
+        m_ColorSwapchain = XR_NULL_HANDLE;
+    }
+
+    m_ColorSwapchainFormat = 0;
+    m_SwapchainWidth = 0;
+    m_SwapchainHeight = 0;
+}
+
+bool OpenXRSession::BeginFrame(XRFrameInfo& outFrame)
+{
+    if (!m_Running) return false;
+
+    XrFrameWaitInfo wi{ XR_TYPE_FRAME_WAIT_INFO };
+    XrFrameState fs{ XR_TYPE_FRAME_STATE };
+
+    if (!XR_SUCCEEDED_LOG(m_Instance, xrWaitFrame(m_Session, &wi, &fs), "xrWaitFrame"))
+        return false;
+
+    XrFrameBeginInfo bi{ XR_TYPE_FRAME_BEGIN_INFO };
+    if (!XR_SUCCEEDED_LOG(m_Instance, xrBeginFrame(m_Session, &bi), "xrBeginFrame"))
+        return false;
+
+    outFrame.predictedDisplayTime = fs.predictedDisplayTime;
+    outFrame.predictedDisplayPeriod = fs.predictedDisplayPeriod;
+    outFrame.shouldRender = (fs.shouldRender == XR_TRUE);
+
+    return true;
+}
+
+bool OpenXRSession::EndFrame(const XRFrameInfo& frame, const XrCompositionLayerBaseHeader* const* layers, uint32_t layerCount)
+{
+    if (!m_Running) return false;
+
+    XrFrameEndInfo ei{ XR_TYPE_FRAME_END_INFO };
+    ei.displayTime = frame.predictedDisplayTime;
+    ei.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+    ei.layerCount = layerCount;
+    ei.layers = layers;
+
+    return XR_SUCCEEDED_LOG(m_Instance, xrEndFrame(m_Session, &ei), "xrEndFrame");
+}
+
+bool OpenXRSession::LocateViews(XrViewConfigurationType viewType, XrTime displayTime, std::vector<XrView>& outViews)
+{
+    if (!m_Running) return false;
+
+    uint32_t viewCount = 0;
+    xrEnumerateViewConfigurationViews(m_Instance, m_SystemId, viewType, 0, &viewCount, nullptr);
+    if (viewCount == 0) return false;
+
+    outViews.resize(viewCount);
+    for (auto& v : outViews) v.type = XR_TYPE_VIEW;
+
+    XrViewLocateInfo li{ XR_TYPE_VIEW_LOCATE_INFO };
+    li.viewConfigurationType = viewType;
+    li.displayTime = displayTime;
+    li.space = m_AppSpace;
+
+    XrViewState vs{ XR_TYPE_VIEW_STATE };
+    uint32_t outCount = 0;
+
+    const XrResult r = xrLocateViews(m_Session, &li, &vs, viewCount, &outCount, outViews.data());
+    if (!XR_SUCCEEDED_LOG(m_Instance, r, "xrLocateViews"))
+        return false;
+
+    return true;
+}
+
+bool OpenXRSession::AcquireSwapchainImage(uint32_t& outImageIndex)
+{
+    if (m_ColorSwapchain == XR_NULL_HANDLE) return false;
+
+    XrSwapchainImageAcquireInfo ai{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
+    uint32_t idx = 0;
+
+    if (!XR_SUCCEEDED_LOG(m_Instance, xrAcquireSwapchainImage(m_ColorSwapchain, &ai, &idx), "xrAcquireSwapchainImage"))
+        return false;
+
+    outImageIndex = idx;
+    return true;
+}
+
+bool OpenXRSession::WaitSwapchainImage()
+{
+    if (m_ColorSwapchain == XR_NULL_HANDLE) return false;
+
+    XrSwapchainImageWaitInfo wi{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
+    wi.timeout = XR_INFINITE_DURATION;
+
+    return XR_SUCCEEDED_LOG(m_Instance, xrWaitSwapchainImage(m_ColorSwapchain, &wi), "xrWaitSwapchainImage");
+}
+
+bool OpenXRSession::ReleaseSwapchainImage()
+{
+    if (m_ColorSwapchain == XR_NULL_HANDLE) return false;
+
+    XrSwapchainImageReleaseInfo ri{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+    return XR_SUCCEEDED_LOG(m_Instance, xrReleaseSwapchainImage(m_ColorSwapchain, &ri), "xrReleaseSwapchainImage");
+}

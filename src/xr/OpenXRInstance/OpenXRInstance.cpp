@@ -1,28 +1,8 @@
-#include "OpenXRInstance.h"
+#include "xr/OpenXRInstance/OpenXRInstance.h"
 #include "core/Logger.h"
 
 #include <vector>
 #include <cstring>
-
-static const char* XrResultToString(XrInstance inst, XrResult r)
-{
-    static char buf[XR_MAX_RESULT_STRING_SIZE];
-    if (inst != XR_NULL_HANDLE)
-    {
-        xrResultToString(inst, r, buf);
-        return buf;
-    }
-    return "XR error";
-}
-
-#define XR_CHECK(inst, expr)                                                     \
-    do {                                                                         \
-        XrResult _r = (expr);                                                    \
-        if (XR_FAILED(_r)) {                                                     \
-            LOG_ERROR(std::string("OpenXR call failed: ") + #expr + " -> " +     \
-                      XrResultToString(inst, _r));                               \
-        }                                                                        \
-    } while (0)
 
 OpenXRInstance::OpenXRInstance()
 {
@@ -36,34 +16,35 @@ OpenXRInstance::~OpenXRInstance()
     {
         xrDestroyInstance(m_Instance);
         m_Instance = XR_NULL_HANDLE;
-        m_SystemId = XR_NULL_SYSTEM_ID;
     }
 }
 
 void OpenXRInstance::CreateInstance()
 {
-    XrInstanceCreateInfo ci{ XR_TYPE_INSTANCE_CREATE_INFO };
-    std::strncpy(ci.applicationInfo.applicationName, "VXR_Engine", XR_MAX_APPLICATION_NAME_SIZE);
-    ci.applicationInfo.applicationVersion = 1;
-    std::strncpy(ci.applicationInfo.engineName, "VXR", XR_MAX_ENGINE_NAME_SIZE);
-    ci.applicationInfo.engineVersion = 1;
-    ci.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
-
-    // Minimal extensions for now (no Vulkan binding yet)
-    std::vector<const char*> exts;
+    // Required extension for Vulkan binding via XR_KHR_vulkan_enable2.
+    // If your runtime doesn't support enable2, you can fallback to XR_KHR_vulkan_enable.
+    std::vector<const char*> enabledExtensions;
+    enabledExtensions.push_back(XR_KHR_VULKAN_ENABLE2_EXTENSION_NAME);
 
 #ifdef _DEBUG
-    // Optional: debug utils (only if runtime supports it; we'll keep it simple for now)
-    // exts.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    // If you later enable XR_EXT_debug_utils, add it here and create a messenger.
+    // enabledExtensions.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-    ci.enabledExtensionCount = (uint32_t)exts.size();
-    ci.enabledExtensionNames = exts.empty() ? nullptr : exts.data();
+    XrInstanceCreateInfo createInfo{ XR_TYPE_INSTANCE_CREATE_INFO };
+    std::strncpy(createInfo.applicationInfo.applicationName, "VXR Engine", XR_MAX_APPLICATION_NAME_SIZE - 1);
+    createInfo.applicationInfo.applicationVersion = 1;
+    std::strncpy(createInfo.applicationInfo.engineName, "VXR", XR_MAX_ENGINE_NAME_SIZE - 1);
+    createInfo.applicationInfo.engineVersion = 1;
+    createInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
 
-    XrResult r = xrCreateInstance(&ci, &m_Instance);
+    createInfo.enabledExtensionCount = (uint32_t)enabledExtensions.size();
+    createInfo.enabledExtensionNames = enabledExtensions.data();
+
+    XrResult r = xrCreateInstance(&createInfo, &m_Instance);
     if (XR_FAILED(r))
     {
-        LOG_ERROR(std::string("xrCreateInstance failed: ") + XrResultToString(XR_NULL_HANDLE, r));
+        LOG_ERROR("Failed to create OpenXR instance!");
         m_Instance = XR_NULL_HANDLE;
         return;
     }
@@ -73,21 +54,24 @@ void OpenXRInstance::CreateInstance()
 
 void OpenXRInstance::GetSystem()
 {
-    if (m_Instance == XR_NULL_HANDLE) return;
+    if (m_Instance == XR_NULL_HANDLE)
+        return;
 
-    XrSystemGetInfo si{ XR_TYPE_SYSTEM_GET_INFO };
-    si.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
+    XrSystemGetInfo sysInfo{ XR_TYPE_SYSTEM_GET_INFO };
+    sysInfo.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
 
-    XrResult r = xrGetSystem(m_Instance, &si, &m_SystemId);
+    XrResult r = xrGetSystem(m_Instance, &sysInfo, &m_SystemId);
     if (XR_FAILED(r))
     {
-        LOG_ERROR(std::string("xrGetSystem failed: ") + XrResultToString(m_Instance, r));
+        LOG_ERROR("Failed to get OpenXR system!");
         m_SystemId = XR_NULL_SYSTEM_ID;
         return;
     }
 
-    XrSystemProperties props{ XR_TYPE_SYSTEM_PROPERTIES };
-    XR_CHECK(m_Instance, xrGetSystemProperties(m_Instance, m_SystemId, &props));
+    LOG_INFO("OpenXR system acquired.");
+}
 
-    LOG_INFO(std::string("OpenXR system: ") + props.systemName);
+void OpenXRInstance::CreateDebugMessenger()
+{
+    // Optional; leave empty for now.
 }
